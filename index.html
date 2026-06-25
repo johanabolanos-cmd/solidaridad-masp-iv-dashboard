@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASP IV · Dashboard de Monitoreo · Solidaridad Colombia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --sol-yellow:#FAC117;--sol-yellow-lt:#FFF8E1;--sol-yellow-dk:#C49210;
+  --sol-black:#1A1A1A;--sol-gray-md:#888;--sol-gray-lt:#D9D9C3;
+  --sol-surface:#F7F7F4;--sol-white:#FFFFFF;
+  --green:#2E7D32;--green-lt:#E8F5E9;
+  --yellow-s:#B45309;--yellow-s-lt:#FFF8E1;
+  --red:#C62828;--red-lt:#FFEBEE;
+  --gray-s:#616161;--gray-s-lt:#F5F5F5;
+  --blue:#1565C0;--blue-lt:#E3F2FD;
+  --sidebar-w:224px;--header-h:60px;--radius:8px;--radius-lg:12px;
+}
+body{font-family:'Open Sans',Arial,sans-serif;background:var(--sol-surface);color:var(--sol-black);font-size:13px;line-height:1.5;display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--sol-black);min-height:100vh;position:fixed;top:0;left:0;display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid #2a2a2a;}
+.sidebar-logo-name{font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.02em;}
+.sidebar-logo-swoosh{width:36px;height:3px;background:var(--sol-yellow);border-radius:2px;margin:4px 0 5px;}
+.sidebar-logo-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.12em;}
+.sidebar-section-label{padding:12px 16px 3px;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.12em;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:11px;font-weight:600;color:#777;cursor:pointer;border-left:3px solid transparent;user-select:none;transition:color 0.12s;}
+.nav-item:hover{color:#ccc;}
+.nav-item.active{color:var(--sol-yellow);border-left-color:var(--sol-yellow);background:rgba(250,193,23,0.06);padding-left:13px;}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#444;line-height:1.7;}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{min-height:var(--header-h);height:auto;background:var(--sol-white);border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;padding:8px 24px;position:sticky;top:0;z-index:50;}
+.topbar-title{font-size:14px;font-weight:800;color:var(--sol-black);letter-spacing:-0.01em;}
+.topbar-meta{display:flex;align-items:center;gap:14px;}
+.meta-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--sol-gray-md);}
+.meta-chip strong{color:var(--sol-black);font-weight:700;}
+.meta-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--sol-yellow);}
+.country-badge{background:var(--sol-yellow);color:var(--sol-black);font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.06em;}
+
+/* FILTER BAR */
+.filterbar{background:var(--sol-white);border-bottom:1px solid #eee;padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.filter-label{font-size:10px;font-weight:700;color:var(--sol-gray-md);text-transform:uppercase;letter-spacing:0.1em;}
+select{font-family:'Open Sans',Arial,sans-serif;font-size:11px;color:var(--sol-black);background:var(--sol-surface);border:1px solid #ddd;border-radius:var(--radius);padding:4px 8px;cursor:pointer;outline:none;}
+select:focus{border-color:var(--sol-yellow);}
+.filter-reset{font-size:11px;color:var(--sol-gray-md);cursor:pointer;padding:4px 8px;border-radius:var(--radius);border:1px solid #ddd;background:#fff;}
+.filter-reset:hover{border-color:var(--sol-yellow);color:var(--sol-black);}
+
+/* PAGE */
+.page{display:none;padding:22px 24px;}
+.page.active{display:block;}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;margin-top:24px;}
+.section-header:first-of-type{margin-top:0;}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--sol-gray-md);}
+.section-count{font-size:10px;color:#bbb;}
+
+/* DISCLAIMER */
+.disclaimer{background:var(--sol-yellow-lt);border:1px solid var(--sol-yellow);border-radius:var(--radius);padding:9px 13px;font-size:11px;color:#78350F;margin-bottom:20px;display:flex;gap:8px;align-items:flex-start;}
+.disclaimer-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+
+/* SUMMARY CARDS */
+.summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.summary-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:13px 15px;}
+.summary-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--sol-gray-md);margin-bottom:3px;}
+.summary-card-value{font-size:24px;font-weight:800;color:var(--sol-black);line-height:1;}
+.summary-card-sub{font-size:10px;color:#aaa;margin-top:3px;}
+.summary-card.yellow-accent{border-top:3px solid var(--sol-yellow);}
+.summary-card.green-accent{border-top:3px solid var(--green);}
+.summary-card.red-accent{border-top:3px solid var(--red);}
+.summary-card.gray-accent{border-top:3px solid #9E9E9E;}
+.summary-card.blue-accent{border-top:3px solid var(--blue);}
+
+/* COMMODITY CARDS */
+.commodity-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px;}
+.commodity-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:14px 16px;}
+.commodity-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.commodity-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.commodity-name{font-size:12px;font-weight:800;color:var(--sol-black);}
+.commodity-projects{font-size:10px;color:#aaa;margin-top:1px;}
+.commodity-kpi-list{font-size:11px;color:#555;line-height:1.7;}
+.commodity-kpi-list span{display:inline-block;background:#F5F5F0;border-radius:4px;padding:1px 6px;margin:1px 2px;font-size:10px;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:22px;}
+.kpi-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:14px 16px;border-top-width:3px;cursor:pointer;transition:box-shadow 0.15s;}
+.kpi-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.kpi-card.on-track{border-top-color:var(--green);}
+.kpi-card.watch{border-top-color:var(--sol-yellow);}
+.kpi-card.at-risk{border-top-color:var(--red);}
+.kpi-card.pending{border-top-color:#9E9E9E;}
+.kpi-card.no-data{border-top-color:#ddd;opacity:0.75;}
+.kpi-area-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--sol-gray-md);margin-bottom:5px;}
+.kpi-name{font-size:12px;font-weight:700;color:var(--sol-black);line-height:1.4;margin-bottom:9px;}
+.kpi-numbers{display:flex;gap:14px;margin-bottom:9px;}
+.kpi-num-block{flex:1;}
+.kpi-num-label{font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#aaa;display:block;margin-bottom:1px;}
+.kpi-num-value{font-size:17px;font-weight:800;color:var(--sol-black);}
+.kpi-num-value.muted{font-size:13px;color:#aaa;font-weight:400;}
+.kpi-bar-bg{height:4px;background:#f0f0f0;border-radius:3px;margin-bottom:9px;overflow:hidden;}
+.kpi-bar{height:4px;border-radius:3px;}
+.kpi-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;}
+.kpi-proyectos-count{font-size:10px;color:#bbb;}
+.kpi-commodity-tag{font-size:9px;color:#aaa;font-style:italic;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.badge-green{background:var(--green-lt);color:var(--green);}
+.badge-yellow{background:var(--yellow-s-lt);color:var(--yellow-s);}
+.badge-red{background:var(--red-lt);color:var(--red);}
+.badge-gray{background:var(--gray-s-lt);color:var(--gray-s);}
+.badge-blue{background:var(--blue-lt);color:var(--blue);}
+.badge-black{background:var(--sol-black);color:var(--sol-yellow);}
+.badge-end{background:#FFF3E0;color:#E65100;}
+.badge-nodata{background:#F5F5F5;color:#999;}
+.badge-g2{background:#EDE7F6;color:#4527A0;}
+.badge-g3{background:#ECEFF1;color:#546E7A;}
+
+/* TRAZABILIDAD TABLE */
+.trace-header{background:var(--sol-black);border-radius:var(--radius) var(--radius) 0 0;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;}
+.trace-header-title{color:#fff;font-size:11px;font-weight:700;}
+.table-wrap{overflow-x:auto;background:var(--sol-white);border:1px solid #eee;border-top:none;border-radius:0 0 var(--radius) var(--radius);margin-bottom:18px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead th{background:#F5F5F0;padding:5px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--sol-gray-md);border-bottom:1px solid #eee;white-space:nowrap;}
+tbody td{padding:5px 10px;border-bottom:1px solid #f5f5f5;color:var(--sol-black);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#FFFBEF;}
+.td-proyecto{font-weight:700;white-space:nowrap;}
+.td-indicador{color:#555;max-width:240px;line-height:1.4;}
+.td-number{font-weight:700;text-align:right;white-space:nowrap;}
+.td-pct{font-weight:800;text-align:right;white-space:nowrap;}
+.td-fecha{color:#aaa;font-size:10px;white-space:nowrap;}
+.pct-on-track{color:var(--green);}
+.pct-watch{color:var(--yellow-s);}
+.pct-at-risk{color:var(--red);}
+.pct-na{color:#ccc;}
+
+/* GROUP SECTION CARDS */
+.group-label{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--radius);margin-bottom:16px;font-size:11px;font-weight:700;}
+.group-g1{background:#E8F5E9;color:var(--green);}
+.group-g2{background:#EDE7F6;color:#4527A0;}
+.group-g3{background:#ECEFF1;color:#546E7A;}
+
+/* NO-DATA KPI */
+.kpi-nodata-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:14px 16px;border-top:3px solid #ddd;opacity:0.8;}
+.kpi-nodata-note{font-size:11px;color:#aaa;font-style:italic;margin-top:6px;}
+
+/* PROJECT CARDS */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-bottom:22px;}
+.project-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:14px 16px;}
+.project-name{font-size:13px;font-weight:800;color:var(--sol-black);}
+.project-freq{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--sol-gray-md);margin-top:2px;}
+.project-divider{height:1px;background:#f0f0f0;margin:9px 0;}
+.project-stat-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:#555;}
+.project-stat-row strong{color:var(--sol-black);font-weight:700;}
+.stat-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+.project-annual-note{background:#F5F5F0;border-radius:var(--radius);padding:7px 9px;font-size:11px;color:#666;line-height:1.5;margin-top:7px;}
+.commodity-pill{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-right:3px;}
+.cp-palma{background:#E8F5E9;color:#2E7D32;}
+.cp-cafe{background:#FFF8E1;color:#B45309;}
+.cp-cacao{background:#F3E5F5;color:#6A1B9A;}
+.cp-ganaderia{background:#E3F2FD;color:#1565C0;}
+
+/* ALERT CARDS */
+.alert-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden;}
+.alert-card-header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f5f5f5;}
+.alert-code{background:var(--sol-black);color:var(--sol-yellow);font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;font-family:monospace;flex-shrink:0;}
+.alert-title{font-size:12px;font-weight:700;color:var(--sol-black);flex:1;}
+.alert-body{padding:11px 16px;}
+.alert-desc{font-size:11px;color:#555;line-height:1.6;margin-bottom:9px;}
+.alert-meta{display:flex;gap:14px;font-size:11px;color:#888;flex-wrap:wrap;}
+.alert-meta strong{color:var(--sol-black);font-weight:700;}
+.alert-type-doble_conteo{border-left:4px solid #F59E0B;}
+.alert-type-dato_desactualizado{border-left:4px solid #9E9E9E;}
+.alert-type-inconsistencia{border-left:4px solid var(--blue);}
+.alert-type-error_tipografico{border-left:4px solid #9E9E9E;}
+.alert-type-definicion_heterogenea{border-left:4px solid var(--blue);}
+.alert-type-comparabilidad_limitada{border-left:4px solid var(--blue);}
+.alert-type-nota_metodologica{border-left:4px solid var(--green);}
+
+/* TRAYECTORIA */
+.tray-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:14px;}
+.tray-kpi-name{font-size:12px;font-weight:700;color:var(--sol-black);margin-bottom:3px;}
+.tray-area-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--sol-gray-md);margin-bottom:12px;}
+.tray-years{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+.tray-year-col{text-align:center;}
+.tray-year-label{font-size:10px;font-weight:700;color:#aaa;margin-bottom:5px;}
+.tray-year-label.current{color:var(--sol-black);}
+.tray-bar-bg{height:72px;background:#f5f5f5;border-radius:4px;position:relative;display:flex;align-items:flex-end;margin-bottom:5px;overflow:hidden;}
+.tray-bar-avance{width:100%;background:var(--sol-yellow);opacity:0.75;position:absolute;bottom:0;border-radius:4px;}
+.tray-year-meta{font-size:10px;color:var(--sol-gray-md);line-height:1.4;}
+.tray-year-meta strong{font-size:11px;color:var(--sol-black);font-weight:800;display:block;}
+.tray-risk-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-top:8px;}
+.tray-risk-low{background:var(--green-lt);color:var(--green);}
+.tray-risk-mid{background:var(--yellow-s-lt);color:var(--yellow-s);}
+.tray-risk-high{background:var(--red-lt);color:var(--red);}
+.tray-risk-nd{background:var(--gray-s-lt);color:var(--gray-s);}
+.tray-nota{background:#F5F5F0;border-radius:var(--radius);padding:9px 13px;font-size:11px;color:#666;line-height:1.6;margin-bottom:18px;border-left:3px solid var(--sol-yellow);}
+
+/* COMMODITY TRAY */
+.comm-tray-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px;}
+.comm-tray-card{background:var(--sol-white);border:1px solid #eee;border-radius:var(--radius-lg);padding:14px 16px;}
+.comm-tray-name{font-size:13px;font-weight:800;color:var(--sol-black);margin-bottom:8px;}
+.comm-tray-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #f8f8f8;color:#555;}
+.comm-tray-row:last-child{border-bottom:none;}
+.comm-tray-row strong{color:var(--sol-black);font-weight:700;}
+
+/* UTILITY */
+.mt-sm{margin-top:7px;}
+.mt-md{margin-top:14px;}
+.flex-gap{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.no-project-note{background:#FAFAFA;border:1px dashed #ddd;border-radius:var(--radius);padding:12px 16px;font-size:11px;color:#aaa;text-align:center;margin-bottom:16px;}
+.exec-table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid #e5e5e0;background:var(--sol-white);}
+.exec-table{width:100%;border-collapse:collapse;font-size:11.5px;font-family:'Open Sans',Arial,sans-serif;}
+.exec-table thead th{background:var(--sol-black);color:#fff;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;position:sticky;top:0;z-index:10;}
+.exec-table thead th.num{text-align:right;} .exec-table thead th.ctr{text-align:center;}
+.exec-table .area-header td{background:#F0F0EA;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--sol-black);padding:6px 12px;border-top:2px solid #D0D0C8;}
+.exec-table tbody tr:hover td{background:#FFFBEF;}
+.exec-table td{padding:7px 12px;border-bottom:1px solid #F0F0EA;color:var(--sol-black);vertical-align:middle;}
+.exec-table tr:last-child td{border-bottom:none;}
+.exec-table .td-area{font-size:10px;color:#aaa;white-space:nowrap;font-weight:600;}
+.exec-table .td-kpi{color:#333;line-height:1.4;max-width:260px;}
+.exec-table .td-kpi-id{font-size:9px;font-weight:800;color:#888;display:block;margin-bottom:1px;text-transform:uppercase;}
+.exec-table .td-num{text-align:right;font-weight:700;white-space:nowrap;}
+.exec-table .td-pct-ok{text-align:right;font-weight:800;white-space:nowrap;color:var(--green);}
+.exec-table .td-pct-mid{text-align:right;font-weight:800;white-space:nowrap;color:var(--yellow-s);}
+.exec-table .td-pct-low{text-align:right;font-weight:800;white-space:nowrap;color:var(--red);}
+.exec-table .td-pct-na{text-align:right;font-weight:400;white-space:nowrap;color:#ccc;}
+.exec-table .td-estado{text-align:center;white-space:nowrap;font-size:11px;}
+.exec-table .muted{color:#bbb;font-weight:400;}
+.area-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+.tt{position:relative;cursor:help;display:inline-block;}
+.tt .tt-inner{font-weight:700;border-bottom:1px dashed #bbb;}
+.tt-box{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#1A1A1A;color:#fff;font-size:10px;border-radius:6px;padding:8px 11px;white-space:nowrap;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,0.25);line-height:1.9;}
+.tt:hover .tt-box{display:block;}
+
+#btn-pdf:hover,#btn-excel:hover{border-color:var(--sol-yellow);background:#FFFBEF;}
+#btn-pdf:active,#btn-excel:active{opacity:0.8;}
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-name">Solidaridad</div>
+    <div class="sidebar-logo-swoosh"></div>
+    <div class="sidebar-logo-sub">MASP IV · Colombia 2026–2030</div>
+  </div>
+  <div class="sidebar-section-label">Monitoreo</div>
+  <div class="nav-item active" onclick="showPage('resumen')"><span class="nav-dot"></span>Resumen Ejecutivo</div>
+  <div class="nav-item" onclick="showPage('trazabilidad')"><span class="nav-dot"></span>Trazabilidad KPI</div>
+  <div class="nav-item" onclick="showPage('portafolio')"><span class="nav-dot"></span>Estado de Proyectos</div>
+  <div class="sidebar-footer">
+    Fecha de corte<br>
+    <strong style="color:#fff;">Junio 2026</strong><br>
+    Actualizado: 16/06/2026<br>
+    <span style="color:#FAC117;font-size:9px;font-weight:700;letter-spacing:0.05em;">v2.0 — Executive Monitoring Dashboard</span>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Resumen Ejecutivo</div>
+    <div class="topbar-meta" style="flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="meta-chip" style="font-size:10px;color:#888;background:#F5F5F0;padding:3px 10px;border-radius:20px;gap:6px;">
+          <span style="color:#555;font-weight:700;">20 KPIs MASP IV</span>
+          <span style="color:#bbb;">|</span>
+          <span style="color:#2E7D32;font-weight:700;">14 priorizados 2026</span>
+          <span style="color:#bbb;">|</span>
+          <span>Corte: <strong style="color:#1A1A1A;">Junio 2026</strong></span>
+        </div>
+        <div class="country-badge">Colombia · Portafolio MASP IV</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;justify-content:flex-end;">
+        <button id="btn-pdf" onclick="exportPDF()" style="font-family:inherit;font-size:9px;font-weight:700;background:#fff;color:#555;border:1px solid #e0e0e0;border-radius:5px;padding:3px 9px;cursor:pointer;display:flex;align-items:center;gap:3px;" title="Exportar página actual a PDF">&#128196; PDF</button>
+        <button id="btn-excel" onclick="exportExcel()" style="font-family:inherit;font-size:9px;font-weight:700;background:#fff;color:#555;border:1px solid #e0e0e0;border-radius:5px;padding:3px 9px;cursor:pointer;display:flex;align-items:center;gap:3px;" title="Exportar datos visibles a Excel">&#128202; Excel</button>
+        <div id="export-msg" style="font-size:9px;color:#888;display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filterbar" id="filterbar">
+    <span class="filter-label">Filtros:</span>
+    <select id="f-area" onchange="applyFilters()">
+      <option value="">&#193;rea</option>
+      <option value="Production">Production</option>
+      <option value="Services">Services</option>
+      <option value="Governance">Governance</option>
+      <option value="Market">Market</option>
+      <option value="Global indicators">Global indicators</option>
+    </select>
+    <select id="f-commodity" onchange="applyFilters()">
+      <option value="">Commodity</option>
+      <option value="Palma">&#127804; Palma</option>
+      <option value="Caf&#233;">&#9749; Caf&#233;</option>
+      <option value="Cacao">&#127851; Cacao</option>
+      <option value="Ganadería">&#128004; Ganader&#237;a</option>
+    </select>
+    <select id="f-proyecto" onchange="applyFilters()">
+      <option value="">Proyecto</option>
+      <option value="CARGILL">CARGILL</option>
+      <option value="PURATOS">PURATOS</option>
+      <option value="BASF">BASF</option>
+      <option value="NISCOPS">NI-SCOPS</option>
+      <option value="P2P">P2P</option>
+      <option value="CLIMATE">Climate Heroes</option>
+      <option value="UKPACT">UK PACT</option>
+    </select>
+    <select id="f-estado" onchange="applyFilters()">
+      <option value="">Estado</option>
+      <option value="G">&#x1F7E2; Alcanzado</option>
+      <option value="Y">&#x1F7E1; En proceso</option>
+      <option value="W">&#x26AA; Sin meta</option>
+    </select>
+    <select id="f-prior" onchange="applyFilters()">
+      <option value="">Priorizaci&#243;n 2026</option>
+      <option value="pri">Priorizados 2026</option>
+      <option value="nopri">No priorizados 2026</option>
+    </select>
+    <select id="f-kpi" onchange="applyFilters()" style="min-width:200px;">
+      <option value="">KPI MASP IV</option>
+      <option value="S1.1">S1.1 &middot; Agricultura clim&#225;ticamente resiliente</option>
+      <option value="REC36">REC36 &middot; Vegetaci&#243;n nativa</option>
+      <option value="S1.4">S1.4 &middot; Ingresos resilientes</option>
+      <option value="REC55">REC55 &middot; An&#225;lisis de ingresos netos</option>
+      <option value="S1.5">S1.5 &middot; Trabajo decente</option>
+      <option value="REC57">REC57 &middot; Asistencia t&#233;cnica inclusiva</option>
+      <option value="REC58">REC58 &middot; AT proveedores</option>
+      <option value="REC42">REC42 &middot; AT Solidaridad</option>
+      <option value="S1.3">S1.3 &middot; Productividad</option>
+      <option value="REC54">REC54 &middot; Servicios financieros</option>
+      <option value="REC59">REC59 &middot; Gesti&#243;n financiera</option>
+      <option value="S2.1">S2.1 &middot; Acceso a servicios</option>
+      <option value="S6.3">S6.3 &middot; Marcos regulatorios</option>
+      <option value="S6.4">S6.4 &middot; Incentivos de mercado</option>
+      <option value="REC60">REC60 &middot; Participaci&#243;n en PSA</option>
+      <option value="REC61">REC61 &middot; Pagos PSA</option>
+      <option value="S6.1">S6.1 &middot; Resiliencia</option>
+      <option value="S1.2">S1.2 &middot; GEI mitigadas</option>
+      <option value="S6.2">S6.2 &middot; Viabilidad de finca</option>
+      <option value="S6.5">S6.5 &middot; Abastecimiento responsable</option>
+    </select>
+    <button class="filter-reset" onclick="resetFilters()">&#10005; Limpiar</button>
+  </div>
+
+  <!-- PAGE 1: RESUMEN EJECUTIVO -->
+  <div class="page active" id="page-resumen">
+    <div class="summary-row" style="margin-bottom:18px;">
+      <div class="summary-card yellow-accent"><div class="summary-card-label">Proyectos activos</div><div class="summary-card-value">7</div><div class="summary-card-sub">Colombia - MASP IV</div></div>
+      <div class="summary-card green-accent"><div class="summary-card-label">Reportando en corte</div><div class="summary-card-value">3</div><div class="summary-card-sub">CARGILL - PURATOS - BASF</div></div>
+      <div class="summary-card gray-accent"><div class="summary-card-label">Con reporte anual</div><div class="summary-card-value">4</div><div class="summary-card-sub">NI-SCOPS - P2P - Climate Heroes - UK PACT</div></div>
+      <div class="summary-card green-accent"><div class="summary-card-label">Corte de informacion</div><div class="summary-card-value">Jun 26</div><div class="summary-card-sub">Actualizado 16/06/2026</div></div>
+    </div>
+    <div class="section-header" style="margin-bottom:10px;"><span class="section-title">Portafolio Colombia - Annual Plan 2026 vs MASP IV 2030</span></div>
+    <div id="exec-table-wrap"></div>
+  </div>
+  <!-- PAGE 2: TRAZABILIDAD -->
+  <div class="page" id="page-trazabilidad">
+    <div id="trazabilidad-container"></div>
+  </div>
+
+  <!-- PAGE 3: PORTAFOLIO -->
+  <div class="page" id="page-portafolio">
+    <div class="section-header"><span class="section-title">Estado de Proyectos</span></div>
+    <div class="project-grid" id="project-cards-container"></div>
+  </div>
+
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════
+// DATOS — FUENTE ÚNICA: archivos v1.2
+// ══════════════════════════════════════════════
+
+const PROYECTOS = [
+  { id:"CARGILL", nombre:"CARGILL",               frecuencia:"Semestral", ultimaFecha:"15/12/2025", estado_reporte:"actualizado",    fondos:"Cargill / Solidaridad",     commodities:["Palma"] },
+  { id:"PURATOS", nombre:"PURATOS / PRoSPO",       frecuencia:"Semestral", ultimaFecha:"15/03/2026", estado_reporte:"actualizado",    fondos:"Puratos / RVO",             commodities:["Palma"] },
+  { id:"BASF",    nombre:"BASF – COCLI",           frecuencia:"Trimestral", ultimaFecha:"15/05/2026", estado_reporte:"actualizado",    fondos:"BASF / Solidaridad",        commodities:["Palma"] },
+  { id:"NISCOPS", nombre:"NI-SCOPS",               frecuencia:"Anual",      ultimaFecha:"30/12/2025", estado_reporte:"anual",          fondos:"RVO / SDGP",                commodities:["Palma"] },
+  { id:"P2P",     nombre:"P2P (Palma & Café)",     frecuencia:"Anual",     ultimaFecha:"30/12/2025", estado_reporte:"anual",          fondos:"IDH / RVO",                 commodities:["Palma","Café"] },
+  { id:"CLIMATE", nombre:"Climate Heroes / Dream Fund", frecuencia:"Anual",ultimaFecha:"30/12/2025", estado_reporte:"anual",          fondos:"RVO / ACORN",               commodities:["Café"] },
+  { id:"UKPACT",  nombre:"UK PACT",                frecuencia:"Anual",     ultimaFecha:"30/12/2025", estado_reporte:"anual",          fondos:"UK PACT / FCDO",            commodities:["Cacao"] },
+];
+
+const COMMODITIES = [
+  { id:"Palma",     icon:"🌴", color:"#FFF8E1", text:"#1A1A1A", bg:"#FAC117",
+    proyectos:["CARGILL","PURATOS","BASF","NISCOPS","P2P"],
+    kpis:["S1.1","S1.4","S1.5","REC57","REC42","S6.3"] },
+  { id:"Café",      icon:"☕", color:"#EFEBE9", text:"#4E342E", bg:"#795548",
+    proyectos:["CLIMATE","P2P"],
+    kpis:["S1.1","S1.4","REC57","REC60","REC61"] },
+  { id:"Cacao",     icon:"🍫", color:"#F3E5F5", text:"#4A148C", bg:"#6A1B9A",
+    proyectos:["UKPACT"],
+    kpis:["S1.2","S6.3","REC60","REC61"] },
+  { id:"Ganadería", icon:"🐄", color:"#E3F2FD", text:"#0D47A1", bg:"#1565C0",
+    proyectos:[],
+    kpis:[] },
+];
+
+// GRUPO 1 — KPIs con contribuciones 2026
+const KPIS_G1 = [
+  {
+    id:"S1.1", area:"Producción", area_est:"Agricultura climáticamente resiliente", unidad:"ha",
+    nombre:"# de ha bajo agricultura climáticamente resiliente",
+    commodities:["Palma","Café","Cacao"],
+    meta_2026:338909, meta_2030:250000,
+    meta_2030_txt:"Palma 15,000 · Café 60,000 · Cacao 75,000 · Ganadería 100,000",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"Ha bajo manejo sostenible (APSCo/RSPO)",          meta2026:50018,  avance:59283,  fecha:"15/12/2025", estado_ind:"Alcanzado"},
+      {proyecto:"PURATOS", indicador:"Ha bajo BMP y/o CSA (RSPO/APSCo, IDS ≥5%)",       meta2026:72000,  avance:146790, fecha:"15/03/2026", estado_ind:"En proceso"},
+      {proyecto:"BASF",    indicador:"Ha bajo criterios APSCO y/o RSPO",                 meta2026:117291, avance:118730, fecha:"15/05/2026", estado_ind:"Alcanzado"},
+      {proyecto:"NISCOPS", indicador:"Ha bajo manejo sostenible (IDS ≥60%)",             meta2026:31200,  avance:26395,  fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"CLIMATE", indicador:"Área total bajo manejo sostenible (OC.1)",         meta2026:39000,  avance:39884,  fecha:"30/12/2025", estado_ind:"En proceso",
+       nota:"Avance correspondiente al componente Dream Fund / Lotería Alemana del programa. Reportado bajo Climate Heroes para evitar doble conteo con P2P."},
+      {proyecto:"UKPACT",  indicador:"Ha incorporadas en plataforma Acorn",              meta2026:29400,  avance:31580,  fecha:"30/12/2025", estado_ind:"En proceso",
+       nota:"Ver alerta A-07: indicador mide registro en plataforma, no gestión sostenible activa. Comparabilidad limitada con otros proyectos."},
+    ],
+    alertas:["A-01","A-06","A-07"],
+    nota_s11:"La contribución reportada (382,778 ha) agrega proyectos con definiciones heterogéneas de 'manejo sostenible' (IDS ≥5% a IDS ≥60% o certificación activa) y no representa hectáreas únicas deduplicadas. La fila de P2P fue eliminada para evitar duplicidad visual con el componente reportado bajo Climate Heroes. Ver alertas A-01, A-06 y A-07."
+  },
+  {
+    id:"S1.4", area:"Producción", area_est:"Ingresos resilientes", unidad:"productores",
+    nombre:"# de productores con incremento en sus ingresos",
+    commodities:["Palma","Café","Cacao"],
+    meta_2026:3922, meta_2030:75000,
+    meta_2030_txt:"Palma 2,000 · Cacao 35,000 · Café 35,000 · Ganadería 3,000",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"# productores con aumento ingreso bruto",          meta2026:230,  avance:null,  fecha:"15/12/2025", estado_ind:"Al final del proyecto"},
+      {proyecto:"PURATOS", indicador:"# pequeños prod. con ingresos mejorados",          meta2026:142,  avance:135,   fecha:"15/03/2026", estado_ind:"En proceso"},
+      {proyecto:"BASF",    indicador:"# productores con incremento en ingresos",         meta2026:300,  avance:null,  fecha:"15/05/2026", estado_ind:"Al final del proyecto"},
+      {proyecto:"UKPACT",  indicador:"% productores cacao generando créditos en ACORN",  meta2026:3250, avance:null,  fecha:"30/12/2025", estado_ind:"Dato pendiente de mapeo"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"S1.5", area:"Producción", area_est:"Trabajo decente", unidad:"trabajadores",
+    nombre:"# de trabajadores con mejores condiciones laborales",
+    commodities:["Palma"],
+    meta_2026:1919, meta_2030:null,
+    meta_2030_txt:"Dato pendiente",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"# trabajadores con cond. laborales mejoradas",         meta2026:88,   avance:90,   fecha:"15/12/2025", estado_ind:"Alcanzado"},
+      {proyecto:"BASF",    indicador:"# trabajadores con cond. laborales mejoradas (finca)",  meta2026:1117, avance:1227, fecha:"15/05/2026", estado_ind:"En proceso"},
+      {proyecto:"P2P",     indicador:"# trabajadores con cond. laborales mejoradas (palma)",  meta2026:714,  avance:1219, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"REC57", area:"Servicios", area_est:"Servicios inclusivos", unidad:"personas",
+    nombre:"# de personas que reciben asistencia técnica inclusiva",
+    commodities:["Palma","Café"],
+    meta_2026:12608, meta_2030:75000,
+    meta_2030_txt:"Palma 2,000 · Cacao 35,000 · Café 35,000 · Ganadería 3,000",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"# productores capacitados (prácticas sostenibles)", meta2026:363,  avance:313,   fecha:"15/12/2025", estado_ind:"En proceso"},
+      {proyecto:"PURATOS", indicador:"# productores capacitados en BMP",                  meta2026:1014, avance:900,   fecha:"15/03/2026", estado_ind:"En proceso"},
+      {proyecto:"BASF",    indicador:"# prod. implementando BMP y cero deforestación",    meta2026:1778, avance:1577,  fecha:"15/05/2026", estado_ind:"Alcanzado"},
+      {proyecto:"NISCOPS", indicador:"# productores capacitados o entrenados",            meta2026:2693, avance:2527,  fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"P2P",     indicador:"# productores con asistencia técnica inclusiva",    meta2026:1510, avance:983,   fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"Productores con acceso a soluciones educativas / financieras / material vegetal", meta2026:5250, avance:null, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:["A-01","A-06"],
+  },
+  {
+    id:"REC58", area:"Servicios", area_est:"AT de proveedores apoyados", unidad:"productores",
+    nombre:"# productores con AT de proveedores de servicios apoyados",
+    commodities:["Palma","Café"],
+    meta_2026:9400, meta_2030:null,
+    meta_2030_txt:"Sin meta MASP IV global definida",
+    contribuciones:[
+      {proyecto:"PURATOS", indicador:"# productores capacitados en BMP (proveedores)", meta2026:800,  avance:null, fecha:"15/03/2026", estado_ind:"Dato pendiente de mapeo",
+       nota:"Indicador aproximado. Requiere mapeo específico desde hoja de vida del proyecto."},
+      {proyecto:"P2P",     indicador:"# productores apoyados con conocimientos (café)", meta2026:8600, avance:null, fecha:"30/12/2025", estado_ind:"Dato pendiente de mapeo",
+       nota:"Indicador aproximado. Requiere mapeo específico desde hoja de vida del proyecto."},
+    ],
+    alertas:[],
+  },
+  {
+    id:"REC42", area:"Servicios", area_est:"AT de Solidaridad", unidad:"productores",
+    nombre:"# productores con asistencia técnica de Solidaridad",
+    commodities:["Palma","Café"],
+    meta_2026:11098, meta_2030:null,
+    meta_2030_txt:"Palma 1,000 · Cacao 17,500 · Café 17,500 · Ganadería 1,500",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"# productores capacitados (AT Solidaridad)",         meta2026:363,  avance:313,   fecha:"15/12/2025", estado_ind:"En proceso"},
+      {proyecto:"PURATOS", indicador:"# productores capacitados en BMP (AT Solidaridad)",  meta2026:1014, avance:900,   fecha:"15/03/2026", estado_ind:"En proceso"},
+      {proyecto:"BASF",    indicador:"# prod. implementando BMP (AT Solidaridad)",         meta2026:1778, avance:1577,  fecha:"15/05/2026", estado_ind:"Alcanzado"},
+      {proyecto:"NISCOPS", indicador:"# productores capacitados o entrenados",             meta2026:2693, avance:2527,  fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"Productores con acceso a soluciones educativas / financieras / material vegetal", meta2026:5250, avance:null, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:["A-01","A-06"],
+  },
+  {
+    id:"S1.3", area:"Producción", area_est:"Productividad", unidad:"productores",
+    nombre:"# productores que mejoran o mantienen rendimiento (kg/ha)",
+    commodities:["Palma"],
+    meta_2026:672, meta_2030:null,
+    meta_2030_txt:"Palma 2,000 · Cacao 35,000 · Café 35,000 · Ganadería 3,000",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"% aumento en productividad",                        meta2026:230, avance:null, fecha:"15/12/2025", estado_ind:"Al final del proyecto"},
+      {proyecto:"PURATOS", indicador:"Productividad promedio (RFF/ha) — 14 t/ha",        meta2026:142, avance:142,  fecha:"15/03/2026", estado_ind:"En proceso"},
+      {proyecto:"NISCOPS", indicador:"% incremento productividad palma Magdalena/Cesar", meta2026:300, avance:null, fecha:"30/12/2025", estado_ind:"En proceso",
+       nota:"Dato en % no directamente sumable. Requiere mapeo metodológico adicional."},
+    ],
+    alertas:[],
+  },
+  {
+    id:"REC54", area:"Servicios", area_est:"Servicios financieros", unidad:"productores",
+    nombre:"# productores que acceden a financiación con apoyo de Solidaridad",
+    commodities:["Palma","Café","Cacao"],
+    meta_2026:1600, meta_2030:null,
+    meta_2030_txt:"Palma 500 · Cacao 12,000 · Café 12,000 · Ganadería 500",
+    contribuciones:[
+      {proyecto:"CLIMATE", indicador:"# productores con acceso a financiamiento para CSA",  meta2026:1000, avance:164,  fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"NISCOPS", indicador:"# de productores que acceden a financiamiento con apoyo de Solidaridad", meta2026:300, avance:null, fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"Productores que acceden a soluciones financieras / material vegetal", meta2026:300, avance:null, fecha:"30/12/2025", estado_ind:"Dato pendiente de mapeo"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"REC59", area:"Servicios", area_est:"Capacitación financiera", unidad:"productores",
+    nombre:"# productores con capacitación en gestión financiera",
+    commodities:["Palma","Café"],
+    meta_2026:2400, meta_2030:null,
+    meta_2030_txt:"Sin meta MASP IV global definida",
+    contribuciones:[
+      {proyecto:"CLIMATE", indicador:"# productores capacitados en gestión financiera", meta2026:1000, avance:null, fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"NISCOPS", indicador:"# productores capacitados en gestión financiera",  meta2026:1400, avance:null, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"S2.1", area:"Servicios", area_est:"Acceso a servicios", unidad:"productores",
+    nombre:"# productores que acceden a servicios nuevos/mejorados de proveedores apoyados",
+    commodities:["Palma","Café"],
+    meta_2026:9400, meta_2030:null,
+    meta_2030_txt:"Sin meta MASP IV global definida",
+    contribuciones:[
+      {proyecto:"PURATOS", indicador:"# productores capacitados en BMP (servicios nuevos)", meta2026:800,  avance:null, fecha:"15/03/2026", estado_ind:"Dato pendiente de mapeo",
+       nota:"Indicador aproximado. Requiere mapeo específico desde hoja de vida del proyecto."},
+      {proyecto:"P2P",     indicador:"# productores con acceso nuevo/mejorado a servicios (palma+café)", meta2026:8600, avance:1496, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"S6.3", area:"Gobernanza", area_est:"Marcos regulatorios", unidad:"marcos",
+    nombre:"# marcos regulatorios establecidos, mejorados o implementados",
+    commodities:["Palma","Cacao"],
+    meta_2026:3, meta_2030:4,
+    meta_2030_txt:"Palma 1 · Cacao 1 · Café 1 · Ganadería 1",
+    contribuciones:[
+      {proyecto:"NISCOPS", indicador:"# políticas sostenibilidad palma introducidas/mejoradas", meta2026:2, avance:1, fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"# documentos de política CSA/agroforestería cacao",      meta2026:1, avance:1, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:[],
+  },
+  {
+    id:"REC60", area:"Mercado", area_est:"Pago por servicios ambientales", unidad:"productores",
+    nombre:"# productores participando en esquemas de PSA",
+    commodities:["Café","Cacao"],
+    meta_2026:39000, meta_2030:73000,
+    meta_2030_txt:"Cacao 35,000 · Café 35,000 · Ganadería 3,000",
+    contribuciones:[
+      {proyecto:"CLIMATE", indicador:"# productores incorporados a Acorn (acumulado)",   meta2026:25000, avance:24770, fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"# productores incorporados a plataforma Acorn",    meta2026:14000, avance:15038, fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:["A-02"],
+  },
+  {
+    id:"REC61", area:"Mercado", area_est:"Pagos PSA efectivos", unidad:"productores",
+    nombre:"# productores recibiendo pagos en programas de PSA",
+    commodities:["Café","Cacao"],
+    meta_2026:7310, meta_2030:73000,
+    meta_2030_txt:"Cacao 35,000 · Café 35,000 · Ganadería 3,000",
+    contribuciones:[
+      {proyecto:"CLIMATE", indicador:"# productores que recibieron pagos (ACORN)",           meta2026:4060, avance:4331, fecha:"30/12/2025", estado_ind:"En proceso"},
+      {proyecto:"UKPACT",  indicador:"% productores cacao generando créditos de carbono",    meta2026:3250, avance:null, fecha:"30/12/2025", estado_ind:"Dato pendiente de mapeo",
+       nota:"La meta de UK PACT en este KPI es en % no en conteo absoluto. Requiere mapeo metodológico."},
+    ],
+    alertas:["A-02"],
+  },
+
+  {
+    id:"S1.2", area:"Producción", area_est:"Cero emisiones / GEI", unidad:"t CO₂",
+    nombre:"# t emisiones GEI mitigadas / capturadas por año",
+    commodities:["Palma","Café"],
+    meta_2026:6801, meta_2030:390000,
+    meta_2030_txt:"Dato pendiente de distribución por cadena",
+    contribuciones:[
+      {proyecto:"CARGILL", indicador:"# TM CO₂ secuestradas por ha",            meta2026:1,    avance:1.65,  fecha:"15/12/2025", estado_ind:"En proceso"},
+      {proyecto:"CLIMATE", indicador:"CO₂ eq secuestrado (CRU generados ACORN)", meta2026:6800, avance:null,  fecha:"30/12/2025", estado_ind:"En proceso"},
+    ],
+    alertas:["A-04"],
+  },
+];
+
+// GRUPO 2 — Meta MASP IV sin contribución 2026
+const KPIS_G2 = [
+  {
+    id:"S6.4", area:"Mercado", area_est:"Recompensas por sostenibilidad", unidad:"empresas",
+    nombre:"# empresas socias que recompensan directamente a productores por prácticas sostenibles",
+    commodities:["Palma","Café","Cacao","Ganadería"],
+    meta_2026:null, meta_2030_txt:"Palma 2 · Cacao 2 · Café 5 · Ganadería 1",
+    nota:"Sin contribución de proyecto asignada para 2026. KPI a monitorear en ciclos futuros."
+  },
+];
+
+// GRUPO 3 — Sin programación en Annual Plan 2026
+const KPIS_G3 = [
+  {id:"REC36", nombre:"# ha de vegetación nativa conservada en finca",                         area:"Producción", unidad:"ha"},
+  {id:"REC55", nombre:"# análisis de ingresos netos realizados",                               area:"Producción", unidad:"análisis"},
+  {id:"S6.1",  nombre:"# productores con mayor resiliencia",                                   area:"Global",     unidad:"productores"},
+  {id:"S6.2",  nombre:"# productores con viabilidad de finca mejorada",                        area:"Global",     unidad:"productores"},
+  {id:"S6.5",  nombre:"# empresas socias con política de abastecimiento responsable",          area:"Global",     unidad:"empresas"},
+];
+
+const ALERTAS = [
+  {codigo:"A-01", tipo:"doble_conteo",           titulo:"Doble conteo potencial — zonas geográficas traslapadas",
+   desc:"BASF, PURATOS y NI-SCOPS operan en zonas geográficas traslapadas (Magdalena, Cesar, María la Baja, Tumaco). Productores y hectáreas no han sido deduplicadas. Con los datos actualizados (PURATOS: 146,790 ha; NI-SCOPS: 26,395 ha), el riesgo aumenta en magnitud.",
+   proyectos:["BASF","PURATOS","NISCOPS"], kpis:["S1.1","REC57","REC42"]},
+  {codigo:"A-02", tipo:"doble_conteo",           titulo:"Doble conteo potencial — plataforma ACORN compartida",
+   desc:"Climate Heroes y UK PACT reportan productores y hectáreas sobre la misma plataforma ACORN. Sin validación cruzada no se puede confirmar si las poblaciones se solapan.",
+   proyectos:["CLIMATE","UKPACT"], kpis:["S1.2","REC60","REC61"]},
+  {codigo:"A-04", tipo:"inconsistencia",         titulo:"Inconsistencia de unidad — CO₂ CARGILL",
+   desc:"El avance reportado para CO₂ de CARGILL es 164,996 pero el comentario indica '16.5 t/ha después de conversión'. No es claro si el valor es toneladas totales o por hectárea. El indicador se excluye del cálculo agregado hasta resolverse.",
+   proyectos:["CARGILL"], kpis:["S1.2"]},
+  {codigo:"A-05", tipo:"error_tipografico",      titulo:"Error tipográfico en fecha — BASF",
+   desc:"Una fila de BASF registra la fecha '15/05/206' (año con 3 dígitos). Se asume 15/05/2026 para monitoreo, pero requiere corrección en la fuente primaria.",
+   proyectos:["BASF"], kpis:["S1.5"]},
+  {codigo:"A-06", tipo:"definicion_heterogenea", titulo:"Definición heterogénea — 'manejo sostenible'",
+   desc:"El umbral de 'manejo sostenible' varía entre proyectos: PURATOS usa IDS ≥5%, NI-SCOPS usa IDS ≥60%, CARGILL y BASF usan certificación APSCo/RSPO. Sumar estas hectáreas implica comparar estándares de diferente exigencia.",
+   proyectos:["CARGILL","PURATOS","NISCOPS","BASF"], kpis:["S1.1","REC57","REC42"]},
+  {codigo:"A-07", tipo:"comparabilidad_limitada", titulo:"Comparabilidad limitada — UK PACT en KPI S1.1",
+   desc:"El indicador de UK PACT en S1.1 mide hectáreas incorporadas en plataforma digital ACORN, no hectáreas bajo gestión sostenible activa verificada. Su naturaleza es de registro/trazabilidad, conceptualmente distinta a los demás proyectos.",
+   proyectos:["UKPACT"], kpis:["S1.1"]},
+  {codigo:"A-NM", tipo:"nota_metodologica",       titulo:"Nota metodológica — Área bajo manejo sostenible: Climate Heroes en S1.1",
+   desc:"El avance de 39,884 ha reportado por Climate Heroes (OC.1) corresponde operativamente al componente Dream Fund / Lotería Alemana relacionado con café. Se reporta únicamente bajo Climate Heroes. La fila de P2P fue eliminada de este KPI para evitar duplicidad visual. El total ajustado de S1.1 es 382,778 ha.",
+   proyectos:["CLIMATE","P2P"], kpis:["S1.1"]},
+];
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+
+
+function fmt(n){if(n===null||n===undefined)return'\u2014';return n.toLocaleString('es-CO');}
+function pct(a,m){if(!a||!m)return null;return Math.round((a/m)*100);}
+function statusFromPct(p){if(p===null)return'pending';if(p>=80)return'on-track';if(p>=50)return'watch';return'at-risk';}
+function statusLabel(s){return{'on-track':'En trayectoria',watch:'Observaci\u00f3n','at-risk':'En riesgo',pending:'Pendiente'}[s]||s;}
+function badgeClass(s){return{'on-track':'badge-green',watch:'badge-yellow','at-risk':'badge-red',pending:'badge-gray'}[s]||'badge-gray';}
+function barColor(s){return{'on-track':'var(--green)',watch:'var(--sol-yellow)','at-risk':'var(--red)',pending:'#ccc'}[s]||'#ccc';}
+function getProyectoById(id){return PROYECTOS.find(function(p){return p.id===id;});}
+function getKpiAvance(kpi){
+  var total=0,hasData=false;
+  for(var i=0;i<kpi.contribuciones.length;i++){
+    var c=kpi.contribuciones[i];
+    if(c.avance!==null&&c.avance!==undefined&&c.estado_ind!=='Al final del proyecto'&&c.estado_ind!=='Dato pendiente de mapeo'){total+=c.avance;hasData=true;}
+  }
+  return hasData?total:null;
+}
+var _ST='display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;';
+function alcBadge(extra){return '<span style="'+_ST+'background:#E8F5E9;color:#2E7D32;'+(extra?extra:'')+'">&#x1F7E2; Alcanzado</span>';}
+function procBadge(extra){return '<span style="'+_ST+'background:#FFF8E1;color:#B45309;'+(extra?extra:'')+'">&#x1F7E1; En proceso</span>';}
+function estadoBadgeFromPct(cp){return (cp!==null&&cp>=100)?alcBadge(''):procBadge('');}
+function headerBadge(p){return (p!==null&&p>=100)?alcBadge('margin-left:6px;'):procBadge('margin-left:6px;');}
+
+// RENDER RESUMEN EJECUTIVO
+function renderCommodityCards(){}
+function renderKpiCards(){}
+function renderResumen(){
+  var wrap=document.getElementById('exec-table-wrap');
+  if(!wrap) return;
+  var TT={
+    'S1.1':'Cacao: 75.000 | Cafe: 60.000 | Ganaderia: 100.000 | Palma: 15.000',
+    'S1.4':'Cacao: 35.000 | Cafe: 35.000 | Ganaderia: 3.000 | Palma: 2.000',
+    'REC57':'Cacao: 35.000 | Cafe: 35.000 | Ganaderia: 3.000 | Palma: 2.000',
+    'REC42':'Cacao: 17.500 | Cafe: 17.500 | Ganaderia: 1.500 | Palma: 1.000',
+    'S1.3':'Cacao: 35.000 | Cafe: 35.000 | Ganaderia: 3.000 | Palma: 2.000',
+    'REC54':'Cacao: 12.000 | Cafe: 12.000 | Ganaderia: 500 | Palma: 500',
+    'S6.3':'Cacao: 1 | Cafe: 1 | Ganaderia: 1 | Palma: 1',
+    'S6.4':'Cacao: 2 | Cafe: 5 | Ganaderia: 1 | Palma: 2',
+    'REC60':'Cacao: 35.000 | Cafe: 35.000 | Ganaderia: 3.000',
+    'REC61':'Cacao: 35.000 | Cafe: 35.000 | Ganaderia: 3.000'
+  };
+  var ROWS=[
+    ['Production','Climate-resilient Agriculture','S1.1','# ha bajo agricultura climaticamente resiliente',250000,338909,382778,113,153,'G'],
+    ['','','REC36','# ha de vegetacion nativa conservada en finca',null,null,null,null,null,'W'],
+    ['','Resilient income','S1.4','# productores con incremento en sus ingresos',75000,3922,135,3,0.2,'Y'],
+    ['','','REC55','# analisis de ingresos netos realizados',null,null,null,null,null,'W'],
+    ['','Decent work','S1.5','# trabajadores con mejores condiciones laborales',null,1919,2536,132,null,'G'],
+    ['Services','Inclusive services','REC57','# personas que reciben asistencia tecnica inclusiva',75000,12608,6300,50,8,'Y'],
+    ['','Technical assistance','REC58','# productores con AT de proveedores apoyados',null,9400,null,null,null,'Y'],
+    ['','','REC42','# productores con asistencia tecnica de Solidaridad',37500,11098,5317,48,14,'Y'],
+    ['','','S1.3','# productores que mejoran o mantienen el rendimiento',75000,672,142,21,0.2,'Y'],
+    ['','Financial services','REC54','# productores que acceden a financiacion',25000,1600,164,10,0.7,'Y'],
+    ['','','REC59','# productores capacitados en gestion financiera',null,2400,null,null,null,'Y'],
+    ['','','S2.1','# productores que acceden a servicios nuevos o mejorados',null,9400,1496,16,null,'Y'],
+    ['Governance','Mandatory frameworks & Sustainable Sourcing','S6.3','# marcos regulatorios establecidos o mejorados',4,3,2,67,50,'Y'],
+    ['Market','Sustainable markets','S6.4','# empresas que recompensan la produccion sostenible',10,null,null,null,0,'Y'],
+    ['','Zero emissions & PES','REC60','# productores que participan en esquemas de PSA',73000,39000,39808,102,55,'G'],
+    ['','','REC61','# productores que reciben pagos por servicios ambientales',73000,7310,4331,59,6,'Y'],
+    ['Global indicators','Global indicators','S6.1','# productores con mayor resiliencia',null,null,null,null,null,'W'],
+    ['','','S1.2','# t emisiones GEI mitigadas por anio',null,6801,1.65,0.02,null,'Y'],
+    ['','','S6.2','# productores con mayor viabilidad de la finca',null,null,null,null,null,'W'],
+    ['','','S6.5','# empresas con politicas de abastecimiento responsable',null,null,null,null,null,'W']
+  ];
+  var AREA_STYLE={
+    'Production':{dot:'#2E7D32',label:'PRODUCTION'},
+    'Services':{dot:'#1565C0',label:'SERVICES'},
+    'Governance':{dot:'#B45309',label:'GOVERNANCE'},
+    'Market':{dot:'#6A1B9A',label:'MARKET'},
+    'Global indicators':{dot:'#546E7A',label:'GLOBAL INDICATORS'}
+  };
+  function fN(v){
+    if(v===null||v===undefined) return '<span class="muted">&#8212;</span>';
+    if(v<10) return String(v).replace('.',',');
+    return Math.round(v).toLocaleString('es-CO');
+  }
+  function fPct(v){
+    if(v===null||v===undefined) return '<td class="td-pct-na">&#8212;</td>';
+    var s=v<10?String(v).replace('.',',')+'%':Math.round(v)+'%';
+    var cls=v>=100?'td-pct-ok':v>=50?'td-pct-mid':'td-pct-low';
+    return '<td class="'+cls+'">'+s+'</td>';
+  }
+  function mTT(id,v){
+    var n=fN(v);
+    if(v===null||v===undefined||!TT[id]) return '<td class="td-num">'+n+'</td>';
+    var lines=TT[id].split(' | ').map(function(l){var p=l.split(': ');return '<strong>'+p[0]+'</strong>: '+p[1];}).join('<br>');
+    return '<td class="td-num"><span class="tt"><span class="tt-inner">'+n+'</span><span class="tt-box">'+lines+'</span></span></td>';
+  }
+  function eCell(e){
+    if(e==='G') return '<td class="td-estado">&#x1F7E2; Alcanzado</td>';
+    if(e==='Y') return '<td class="td-estado">&#x1F7E1; En proceso</td>';
+    return '<td class="td-estado">&#x26AA; Sin meta</td>';
+  }
+  var html='<div class="exec-table-wrap"><table class="exec-table">'
+    +'<thead><tr>'
+    +'<th>Area de Resultado</th><th>Area Estrategica</th><th>KPI MASP IV</th>'
+    +'<th class="num">Meta MASP IV 2030</th><th class="num">Meta 2026</th>'
+    +'<th class="num">Avance 2026</th><th class="num">% Meta 2026</th>'
+    +'<th class="num">% Meta MASP IV</th><th class="ctr">Estado</th>'
+    +'</tr></thead><tbody>';
+  var lastArea='';
+  ROWS.forEach(function(row){
+    var aR=row[0],aE=row[1],kid=row[2],kn=row[3],m30=row[4],m26=row[5],av=row[6],p26=row[7],pM=row[8],est=row[9];
+    if(aR&&aR!==lastArea){
+      var as=AREA_STYLE[aR]||{dot:'#888',label:aR.toUpperCase()};
+      html+='<tr class="area-header"><td colspan="9"><span class="area-dot" style="background:'+as.dot+';"></span>'+as.label+'</td></tr>';
+      lastArea=aR;
+    }
+    html+='<tr>'
+      +'<td class="td-area">'+(aR||'')+'</td>'
+      +'<td class="td-area">'+(aE||'')+'</td>'
+      +'<td class="td-kpi"><span class="td-kpi-id">'+kid+'</span>'+kn+'</td>'
+      +mTT(kid,m30)
+      +'<td class="td-num">'+fN(m26)+'</td>'
+      +'<td class="td-num">'+fN(av)+'</td>'
+      +fPct(p26)+fPct(pM)+eCell(est)+'</tr>';
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+// RENDER TRAZABILIDAD (solo G1)
+function renderTrazabilidad(){
+  var container=document.getElementById('trazabilidad-container');
+  container.innerHTML='';
+  KPIS_G1.forEach(function(kpi){
+    var avance=getKpiAvance(kpi);
+    var p=pct(avance,kpi.meta_2026);
+    var commBadgesHtml='';
+    kpi.commodities.forEach(function(cm_id){
+      var cm=COMMODITIES.find(function(x){return x.id===cm_id;});
+      if(cm) commBadgesHtml+='<span class="comm-chip" data-comm="'+cm_id+'" style="font-size:10px;padding:2px 7px;border-radius:20px;background:'+cm.color+';color:'+cm.text+';font-weight:700;">'+cm.icon+' '+cm_id+'</span>';
+    });
+    var rowsHtml='';
+    kpi.contribuciones.forEach(function(contrib){
+      var proj=getProyectoById(contrib.proyecto);
+      var freq=proj?proj.frecuencia:'\u2014';
+      var cp=pct(contrib.avance,contrib.meta2026);
+      var pctClass='pct-na';
+      if(cp!==null){pctClass=cp>=100?'pct-on-track':cp>=50?'pct-watch':'pct-at-risk';}
+      var badge=estadoBadgeFromPct(cp);
+      var rowComm=proj?(proj.commodities.join(',')):'';
+      rowsHtml+='<tr data-proyecto="'+contrib.proyecto+'" data-pct="'+(cp!==null?cp:'')+'" data-comm="'+rowComm+'">'
+        +'<td class="td-proyecto">'+contrib.proyecto+'</td>'
+        +'<td class="td-indicador">'+contrib.indicador+'</td>'
+        +'<td style="font-size:10px;color:#aaa;white-space:nowrap;">'+freq+'</td>'
+        +'<td class="td-number">'+fmt(contrib.meta2026)+'</td>'
+        +'<td class="td-number">'+(contrib.avance!==null&&contrib.avance!==undefined?fmt(contrib.avance):'<span style="color:#ccc;">\u2014</span>')+'</td>'
+        +'<td class="td-pct '+pctClass+'">'+(cp!==null?cp+'%':'\u2014')+'</td>'
+        +'<td>'+badge+'</td>'
+        +'<td class="td-fecha">'+contrib.fecha+'</td>'
+        +'</tr>';
+    });
+    var block=document.createElement('div');
+    block.id='kpi-block-'+kpi.id;
+    block.setAttribute('data-area',kpi.area);
+    block.setAttribute('data-commodity',kpi.commodities.join(','));
+    block.style.marginBottom='14px';
+    block.innerHTML=
+      '<div class="trace-header">'
+      +'<div>'
+      +'<div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">'+kpi.area+' \u00b7 '+kpi.area_est+' \u00b7 ID: '+kpi.id+'</div>'
+      +'<div class="trace-header-title">'+kpi.nombre+'</div>'
+      +'<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;">'+commBadgesHtml+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +'<div style="text-align:right;"><div style="font-size:9px;color:#666;text-transform:uppercase;">Meta 2026</div>'
+      +'<div class="meta-val" style="color:var(--sol-yellow);font-weight:800;font-size:14px;">'+fmt(kpi.meta_2026)+'</div></div>'
+      +'<div style="text-align:right;margin-left:6px;"><div style="font-size:9px;color:#666;text-transform:uppercase;">Contrib. reportada</div>'
+      +'<div class="contrib-val" data-original="'+fmt(avance)+'" style="color:#fff;font-weight:800;font-size:14px;">'+fmt(avance)+'</div></div>'
+      +'<div class="header-badge" data-original="'+headerBadge(p).replace(/"/g,'&quot;')+'">'+headerBadge(p)+'</div>'
+      +'</div></div>'
+      +'<div class="table-wrap"><table><thead><tr>'
+      +'<th>Proyecto</th><th>Indicador</th><th>Frecuencia</th>'
+      +'<th style="text-align:right;">Meta 2026</th>'
+      +'<th style="text-align:right;">Avance reportado</th>'
+      +'<th style="text-align:right;">%</th>'
+      +'<th>Estado</th><th>Fecha</th>'
+      +'</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
+    container.appendChild(block);
+  });
+}
+function scrollToKpi(id){setTimeout(function(){var el=document.getElementById('kpi-block-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},100);}
+
+// RENDER PORTAFOLIO
+function renderPortafolio(){
+  var container=document.getElementById('project-cards-container');
+  container.innerHTML='';
+  // Tooltip text for annual projects
+  var anualTooltip='Proyecto con reporte anual. La información corresponde al último corte disponible y la ausencia de actualizaciones durante el año no representa un riesgo metodológico.';
+  PROYECTOS.forEach(function(p){
+    var card=document.createElement('div');
+    card.className='project-card';
+    var kpiData=KPIS_G1.reduce(function(acc,k){return acc.concat(k.contribuciones.filter(function(c){return c.proyecto===p.id;}));},[]);
+    var alcanzados=kpiData.filter(function(c){return c.estado_ind==='Alcanzado';}).length;
+    // Merge "En proceso" + "Al final del proyecto" into one "En proceso" count
+    var enProceso=kpiData.filter(function(c){
+      return c.estado_ind==='En proceso'||c.estado_ind==='Al final del proyecto';
+    }).length;
+    // Pendiente: dato pendiente de mapeo — keep separate or fold into enProceso
+    var pendiente=kpiData.filter(function(c){return c.estado_ind==='Dato pendiente de mapeo';}).length;
+    var commPills='';
+    p.commodities.forEach(function(cm){
+      var cls={'Palma':'cp-palma','Café':'cp-cafe','Cacao':'cp-cacao','Ganadería':'cp-ganaderia'}[cm]||'cp-palma';
+      commPills+='<span class="commodity-pill '+cls+'">'+cm+'</span>';
+    });
+    // Badge: for annual show badge + tooltip icon; for others show checkmark
+    var repoBadge='';
+    if(p.estado_reporte==='anual'){
+      repoBadge='<span class="badge badge-gray">&#128197; Anual <span title="'+anualTooltip+'" style="cursor:help;border-bottom:1px dashed #aaa;font-size:11px;">&#9432;</span></span>';
+    } else {
+      repoBadge='<span class="badge badge-green">&#10003; Actualizado</span>';
+    }
+    // Frequency display: frecuencia only (no fondos)
+    var freqDisplay=p.frecuencia;
+    // For semestral/trimestral, add project name if not annual
+    // Rule: show "FREQ · NAME" but only the project name, not the funder
+    var projName={'CARGILL':'CARGILL','PURATOS':'PURATOS','BASF':'BASF','NISCOPS':'','P2P':'','CLIMATE':'','UKPACT':''}[p.id]||'';
+    if(projName) freqDisplay=p.frecuencia+' · '+projName;
+    var statPills='';
+    if(alcanzados) statPills+='<span class="badge badge-green">&#10003; '+alcanzados+' alcanzado'+(alcanzados>1?'s':'')+'</span>';
+    if(enProceso)  statPills+='<span class="badge badge-blue">'+enProceso+' en proceso</span>';
+    if(pendiente)  statPills+='<span class="badge badge-gray">&#9898; '+pendiente+' pendiente</span>';
+    card.innerHTML=
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">'
+      +'<div><div class="project-name">'+p.nombre+'</div>'
+      +'<div class="project-freq">'+freqDisplay+'</div>'
+      +'<div style="margin-top:5px;">'+commPills+'</div></div>'
+      +repoBadge+'</div>'
+      +'<div class="project-divider"></div>'
+      +'<div class="project-stat-row"><span>Último reporte</span><strong>'+p.ultimaFecha+'</strong></div>'
+      +'<div class="project-stat-row"><span>Indicadores</span><strong>'+kpiData.length+'</strong></div>'
+      +'<div class="stat-pills">'+statPills+'</div>';
+    container.appendChild(card);
+  });
+}
+function renderAlertas(){}
+
+// CONTRIBUCION AL MASP IV 2030
+function renderTrayectoria(){
+  var container = document.getElementById('masp-contrib-container');
+  if(!container) return;
+  container.innerHTML = '';
+
+  // ── Tooltip data (same as exec table) ─────────────────────────────────────
+  var TT = {
+    'S1.1':'Palma: 15.000 | Café: 60.000 | Cacao: 75.000 | Ganadería: 100.000',
+    'S1.4':'Palma: 2.000 | Café: 35.000 | Cacao: 35.000 | Ganadería: 3.000',
+    'REC57':'Palma: 2.000 | Café: 35.000 | Cacao: 35.000 | Ganadería: 3.000',
+    'REC42':'Palma: 1.000 | Café: 17.500 | Cacao: 17.500 | Ganadería: 1.500',
+    'S1.3':'Palma: 2.000 | Café: 35.000 | Cacao: 35.000 | Ganadería: 3.000',
+    'REC54':'Palma: 500 | Café: 12.000 | Cacao: 12.000 | Ganadería: 500',
+    'S6.3':'Palma: 1 | Café: 1 | Cacao: 1 | Ganadería: 1',
+    'S6.4':'Palma: 2 | Café: 5 | Cacao: 2 | Ganadería: 1',
+    'REC60':'Cacao: 35.000 | Café: 35.000 | Ganadería: 3.000',
+    'REC61':'Cacao: 35.000 | Café: 35.000 | Ganadería: 3.000',
+    'S1.2':'Dato pendiente de distribución por cadena'
+  };
+
+  function makeTTcell(kid, val, unit){
+    var n = val!==null?Math.round(val).toLocaleString('es-CO') + (unit?' '+unit:'') : '—';
+    if(!TT[kid]||val===null) return '<span style="font-weight:700;">'+n+'</span>';
+    var lines = TT[kid].split(' | ').map(function(l){var p=l.split(': ');return '<strong>'+p[0]+'</strong>: '+p[1];}).join('<br>');
+    return '<span class="tt"><span class="tt-inner">'+n+'</span><span class="tt-box">'+lines+'</span></span>';
+  }
+
+  // ── Header summary cards ───────────────────────────────────────────────────
+  var headerDiv = document.createElement('div');
+  headerDiv.className = 'summary-row';
+  headerDiv.style.marginBottom = '22px';
+  headerDiv.innerHTML =
+    '<div class="summary-card yellow-accent"><div class="summary-card-label">KPIs MASP IV</div><div class="summary-card-value">20</div><div class="summary-card-sub">Indicadores estratégicos para Colombia</div></div>'
+   +'<div class="summary-card green-accent"><div class="summary-card-label">KPIs priorizados 2026</div><div class="summary-card-value">15</div><div class="summary-card-sub">Con meta o seguimiento en Annual Plan 2026</div></div>'
+   +'<div class="summary-card gray-accent"><div class="summary-card-label">KPIs sin meta 2026</div><div class="summary-card-value">5</div><div class="summary-card-sub">Indicadores estratégicos sin programación 2026</div></div>'
+   +'<div class="summary-card blue-accent"><div class="summary-card-label">Proyectos activos</div><div class="summary-card-value">7</div><div class="summary-card-sub">Proyectos que contribuyen al MASP IV Colombia</div></div>';
+  container.appendChild(headerDiv);
+
+  // ── Subtitle ───────────────────────────────────────────────────────────────
+  var subtitleDiv = document.createElement('div');
+  subtitleDiv.style.cssText = 'font-size:12px;color:#666;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #eee;';
+  subtitleDiv.textContent = 'Contribución del portafolio de Colombia al cumplimiento de las metas estratégicas del MASP IV 2026–2030.';
+  container.appendChild(subtitleDiv);
+
+  // ── KPI card data ──────────────────────────────────────────────────────────
+  // [id, shortName, meta2030, meta2026, avance, unit, hasMeta2030Quant]
+  var CARDS = [
+    // PRODUCTION
+    ['S1.1', 'Hectáreas bajo agricultura climáticamente resiliente', 250000, 338909, 382778, 'ha', true],
+    ['REC36','Hectáreas de vegetación nativa conservada', null, null, null, 'ha', false],
+    ['S1.4', 'Productores con incremento en sus ingresos', 75000, 3922, 135, 'productores', true],
+    ['REC55','Análisis de ingresos netos realizados', null, null, null, 'análisis', false],
+    ['S1.5', 'Trabajadores con mejores condiciones laborales', null, 1919, 2536, 'trabajadores', false],
+    // SERVICES
+    ['REC57','Personas que reciben asistencia técnica inclusiva', 75000, 12608, 6300, 'personas', true],
+    ['REC58','Productores con asistencia técnica de proveedores apoyados', null, 9400, null, 'productores', false],
+    ['REC42','Productores con asistencia técnica de Solidaridad', 37500, 11098, 5317, 'productores', true],
+    ['S1.3', 'Productores que mejoran o mantienen el rendimiento', null, 672, 142, 'productores', false],
+    ['REC54','Productores que acceden a financiación con apoyo de Solidaridad', null, 1600, 164, 'productores', false],
+    ['REC59','Productores capacitados en gestión financiera', null, 2400, null, 'productores', false],
+    ['S2.1', 'Productores que acceden a servicios nuevos o mejorados', null, 9400, 1496, 'productores', false],
+    // GOVERNANCE
+    ['S6.3', 'Marcos regulatorios establecidos o mejorados', 4, 3, 2, 'marcos', true],
+    // MARKET
+    ['S6.4', 'Empresas socias que recompensan la producción sostenible', 10, null, null, 'empresas', true],
+    ['REC60','Productores participando en esquemas de PSA', 73000, 39000, 39808, 'productores', true],
+    ['REC61','Productores recibiendo pagos por servicios ambientales', 73000, 7310, 4331, 'productores', true],
+    // GLOBAL INDICATORS
+    ['S6.1', 'Productores con mayor resiliencia', null, null, null, 'productores', false],
+    ['S1.2', 'Toneladas de GEI mitigadas por año', 390000, 6801, 1, 't CO₂', true],
+    ['S6.2', 'Productores con mayor viabilidad de la finca', null, null, null, 'productores', false],
+    ['S6.5', 'Empresas con políticas de abastecimiento responsable', null, null, null, 'empresas', false],
+  ];
+
+  var AREAS = [
+    {name:'PRODUCTION', ids:['S1.1','REC36','S1.4','REC55','S1.5'], dot:'#2E7D32'},
+    {name:'SERVICES',   ids:['REC57','REC58','REC42','S1.3','REC54','REC59','S2.1'], dot:'#1565C0'},
+    {name:'GOVERNANCE', ids:['S6.3'], dot:'#B45309'},
+    {name:'MARKET',     ids:['S6.4','REC60','REC61'], dot:'#6A1B9A'},
+    {name:'GLOBAL INDICATORS', ids:['S6.1','S1.2','S6.2','S6.5'], dot:'#546E7A'},
+  ];
+
+  var cardMap = {};
+  CARDS.forEach(function(row){ cardMap[row[0]] = row; });
+
+  AREAS.forEach(function(area){
+    // Area header
+    var aHdr = document.createElement('div');
+    aHdr.style.cssText = 'display:flex;align-items:center;gap:8px;margin:20px 0 12px;';
+    aHdr.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:'+area.dot+';display:inline-block;flex-shrink:0;"></span>'
+      +'<span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#555;">'+area.name+'</span>'
+      +'<span style="flex:1;height:1px;background:#eee;"></span>';
+    container.appendChild(aHdr);
+
+    // Cards grid
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:4px;';
+
+    area.ids.forEach(function(kid){
+      var row = cardMap[kid];
+      if(!row) return;
+      var id=row[0], name=row[1], meta30=row[2], meta26=row[3], avance=row[4], unit=row[5], hasBar=row[6];
+
+      var pct30 = (meta30 && avance) ? Math.round((avance/meta30)*100) : null;
+      var estado = 'W';
+      if(meta30===null && meta26===null) estado='W';
+      else if(avance===null||avance===undefined) estado='Y';
+      else if(meta26!==null && avance>=meta26) estado='G';
+      else estado='Y';
+
+      var estadoHtml = estado==='G'
+        ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8F5E9;color:#2E7D32;">&#x1F7E2; Alcanzado</span>'
+        : estado==='Y'
+        ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FFF8E1;color:#B45309;">&#x1F7E1; En proceso</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F5F5F5;color:#888;">&#x26AA; Sin meta</span>';
+
+      var card = document.createElement('div');
+      card.style.cssText = 'background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px;border-top:3px solid '+(estado==='G'?'#2E7D32':estado==='Y'?'#FAC117':'#ddd')+';';
+
+      // ID badge + name
+      var topHtml = '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px;">'+id+'</div>'
+        +'<div style="font-size:12px;font-weight:700;color:#1A1A1A;line-height:1.4;margin-bottom:12px;">'+name+'</div>';
+
+      if(!hasBar || meta30===null){
+        // No quantitative meta: show informative card
+        var infoHtml = '<div style="background:#F5F5F5;border-radius:8px;padding:8px 10px;font-size:11px;color:#888;font-style:italic;margin-bottom:10px;">Indicador estratégico sin meta cuantitativa definida para Colombia.</div>';
+        if(meta26!==null){
+          infoHtml += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:4px;"><span>Meta Annual Plan 2026</span><strong>'+Math.round(meta26).toLocaleString('es-CO')+' '+unit+'</strong></div>';
+        }
+        if(avance!==null){
+          infoHtml += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:8px;"><span>Contribución reportada</span><strong>'+Math.round(avance).toLocaleString('es-CO')+' '+unit+'</strong></div>';
+        }
+        infoHtml += '<div style="margin-top:8px;">'+estadoHtml+'</div>';
+        card.innerHTML = topHtml + infoHtml;
+      } else {
+        // Has quantitative meta 2030
+        var barW = Math.min(100, pct30||0);
+        var barColor = pct30>=100?'#2E7D32':pct30>=50?'#FAC117':'#E65100';
+        var meta30Cell = makeTTcell(id, meta30, unit);
+        var dataHtml =
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
+          +'<div style="background:#F7F7F4;border-radius:8px;padding:8px 10px;">'
+          +'<div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Meta MASP IV 2030</div>'
+          +'<div style="font-size:13px;font-weight:800;color:#1A1A1A;">'+meta30Cell+'</div>'
+          +'</div>'
+          +'<div style="background:#F7F7F4;border-radius:8px;padding:8px 10px;">'
+          +'<div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Meta 2026</div>'
+          +'<div style="font-size:13px;font-weight:800;color:#1A1A1A;">'+(meta26!==null?Math.round(meta26).toLocaleString('es-CO')+' '+unit:'—')+'</div>'
+          +'</div>'
+          +'<div style="background:#F7F7F4;border-radius:8px;padding:8px 10px;">'
+          +'<div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Contribución reportada</div>'
+          +'<div style="font-size:13px;font-weight:800;color:#1A1A1A;">'+(avance!==null?Math.round(avance).toLocaleString('es-CO')+' '+unit:'—')+'</div>'
+          +'</div>'
+          +'<div style="background:#F7F7F4;border-radius:8px;padding:8px 10px;">'
+          +'<div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Avance vs MASP IV</div>'
+          +'<div style="font-size:13px;font-weight:800;color:'+barColor+';">'+(pct30!==null?pct30+'%':'—')+'</div>'
+          +'</div>'
+          +'</div>'
+          // Progress bar
+          +'<div style="height:6px;background:#f0f0f0;border-radius:4px;margin-bottom:10px;overflow:hidden;">'
+          +'<div style="height:6px;border-radius:4px;background:'+barColor+';width:'+barW+'%;transition:width 0.5s;"></div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+          +estadoHtml
+          +'<span style="font-size:10px;color:#bbb;">'+unit+'</span>'
+          +'</div>';
+        card.innerHTML = topHtml + dataHtml;
+      }
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
+  });
+
+  // ── Footer note ────────────────────────────────────────────────────────────
+  var footerDiv = document.createElement('div');
+  footerDiv.style.cssText = 'margin-top:28px;padding:14px 18px;background:#F7F7F4;border-radius:10px;border-left:3px solid var(--sol-yellow);font-size:11px;color:#666;line-height:1.7;';
+  footerDiv.textContent = 'Esta página presenta la contribución acumulada del portafolio de Colombia frente a las metas estratégicas del MASP IV 2030. No constituye una proyección de cumplimiento ni una estimación estadística, sino una visualización del aporte actual de los proyectos activos.';
+  container.appendChild(footerDiv);
+}
+
+
+// FILTERS
+// FILTER STATE (persists across pages)
+var G_FILTERS = {area:'', comm:'', proj:'', estado:'', prior:'', kpi:''};
+
+// KPI metadata for cross-page filtering
+var KPI_PRIORIZADOS = ['S1.1','S1.4','S1.5','REC57','REC58','REC42','S1.3','REC54','REC59','S2.1','S6.3','REC60','REC61','S1.2'];
+var KPI_NO_PRIORIZADOS = ['REC36','REC55','S6.4','S6.1','S6.2','S6.5'];
+var KPI_AREA_MAP = {'S1.1':'Production','REC36':'Production','S1.4':'Production','REC55':'Production','S1.5':'Production','REC57':'Services','REC58':'Services','REC42':'Services','S1.3':'Services','REC54':'Services','REC59':'Services','S2.1':'Services','S6.3':'Governance','S6.4':'Market','REC60':'Market','REC61':'Market','S6.1':'Global indicators','S1.2':'Global indicators','S6.2':'Global indicators','S6.5':'Global indicators'};
+var KPI_ESTADO_MAP = {'S1.1':'G','S1.4':'G','S1.5':'G','REC57':'G','REC42':'G','REC60':'G','REC58':'Y','S1.3':'Y','REC54':'Y','REC59':'Y','S2.1':'Y','S6.3':'Y','S6.4':'Y','REC61':'Y','S1.2':'Y','REC36':'W','REC55':'W','S6.1':'W','S6.2':'W','S6.5':'W'};
+var KPI_COMM_MAP = {'S1.1':['Palma','Café','Cacao'],'REC36':['Palma','Café','Cacao','Ganadería'],'S1.4':['Palma','Café'],'REC55':['Palma','Café','Cacao','Ganadería'],'S1.5':['Palma'],'REC57':['Palma','Café'],'REC58':['Palma','Café'],'REC42':['Palma','Café'],'S1.3':['Palma'],'REC54':['Palma','Café'],'REC59':['Palma','Café'],'S2.1':['Palma','Café'],'S6.3':['Palma','Cacao'],'S6.4':['Palma','Café','Cacao','Ganadería'],'REC60':['Café','Cacao'],'REC61':['Café','Cacao'],'S6.1':['Palma','Café','Cacao','Ganadería'],'S1.2':['Palma','Café','Cacao'],'S6.2':['Palma','Café','Cacao','Ganadería'],'S6.5':['Palma','Café','Cacao','Ganadería']};
+
+function applyFilters(){
+  // Read current filter values from selects (persist to G_FILTERS)
+  var el_area  = document.getElementById('f-area');
+  var el_comm  = document.getElementById('f-commodity');
+  var el_proj  = document.getElementById('f-proyecto');
+  var el_estado= document.getElementById('f-estado');
+  var el_prior = document.getElementById('f-prior');
+  var el_kpi   = document.getElementById('f-kpi');
+  if(el_area)   G_FILTERS.area   = el_area.value;
+  if(el_comm)   G_FILTERS.comm   = el_comm.value;
+  if(el_proj)   G_FILTERS.proj   = el_proj.value;
+  if(el_estado) G_FILTERS.estado = el_estado.value;
+  if(el_prior)  G_FILTERS.prior  = el_prior.value;
+  if(el_kpi)    G_FILTERS.kpi    = el_kpi.value;
+
+  var area   = G_FILTERS.area;
+  var comm   = G_FILTERS.comm;
+  var proj   = G_FILTERS.proj;
+  var estado = G_FILTERS.estado;
+  var prior  = G_FILTERS.prior;
+  var kpi    = G_FILTERS.kpi;
+
+  // ── Helper: does a KPI ID pass all filters? ────────────────────────────────
+  function kpiPasses(kid){
+    if(area){
+      var kArea = KPI_AREA_MAP[kid]||'';
+      // Map Spanish area names from trazabilidad data-area attrs
+      var areaMap = {
+        'Production':['Production','Producción'],
+        'Services':['Services','Servicios'],
+        'Governance':['Governance','Gobernanza'],
+        'Market':['Market','Mercado'],
+        'Global indicators':['Global indicators','Global']
+      };
+      var allowed = areaMap[area]||[area];
+      if(allowed.indexOf(kArea)<0) return false;
+    }
+    if(comm){
+      var kComms = KPI_COMM_MAP[kid]||[];
+      if(kComms.indexOf(comm)<0) return false;
+    }
+    if(estado){
+      var kEstado = KPI_ESTADO_MAP[kid]||'';
+      if(kEstado !== estado) return false;
+    }
+    if(prior){
+      if(prior==='pri'    && KPI_PRIORIZADOS.indexOf(kid)<0)    return false;
+      if(prior==='nopri'  && KPI_NO_PRIORIZADOS.indexOf(kid)<0) return false;
+    }
+    if(kpi && kid !== kpi) return false;
+    return true;
+  }
+
+  // ── RESUMEN EJECUTIVO: exec-table rows ─────────────────────────────────────
+  var wrap = document.getElementById('exec-table-wrap');
+  if(wrap){
+    var etable = wrap.querySelector('.exec-table');
+    if(etable){
+      var rows = Array.prototype.slice.call(etable.querySelectorAll('tbody tr'));
+      var anyExecVisible = false;
+      rows.forEach(function(row){
+        if(row.classList.contains('area-header')) return;
+        var idSpan = row.querySelector('.td-kpi-id');
+        var rowKid = idSpan ? idSpan.textContent.trim() : '';
+        if(!rowKid){ row.style.display='none'; return; }
+
+        var show = kpiPasses(rowKid);
+
+        // Proyecto filter: for exec table, check if any project in this KPI matches
+        // (exec table shows KPI-level rows, not project rows)
+        // proj filter on exec table: show KPI if any contributing project matches
+        if(proj && show){
+          var kpiObj = null;
+          for(var i=0;i<KPIS_G1.length;i++){if(KPIS_G1[i].id===rowKid){kpiObj=KPIS_G1[i];break;}}
+          if(kpiObj){
+            var hasProj=false;
+            for(var j=0;j<kpiObj.contribuciones.length;j++){if(kpiObj.contribuciones[j].proyecto===proj){hasProj=true;break;}}
+            if(!hasProj) show=false;
+          } else {
+            // G2/G3 KPIs have no projects — hide when proj filter active
+            show = false;
+          }
+        }
+
+        row.style.display = show ? '' : 'none';
+        if(show) anyExecVisible = true;
+      });
+
+      // Show/hide area-header rows
+      Array.prototype.forEach.call(etable.querySelectorAll('tr.area-header'),function(hdr){
+        var hasVis=false;
+        var next=hdr.nextElementSibling;
+        while(next&&!next.classList.contains('area-header')){
+          if(next.querySelector('.td-kpi-id')&&next.style.display!=='none') hasVis=true;
+          next=next.nextElementSibling;
+        }
+        hdr.style.display=hasVis?'':'none';
+      });
+
+      // No results
+      var noMsg=document.getElementById('re-no-results');
+      if(!noMsg){
+        noMsg=document.createElement('div');
+        noMsg.id='re-no-results';
+        noMsg.style.cssText='display:none;padding:32px;text-align:center;color:#aaa;font-size:13px;font-style:italic;';
+        noMsg.textContent='No hay KPIs para los filtros seleccionados.';
+        wrap.appendChild(noMsg);
+      }
+      noMsg.style.display = anyExecVisible?'none':'block';
+      etable.style.display = anyExecVisible?'':'none';
+    }
+  }
+
+  // ── TRAZABILIDAD: KPI blocks ────────────────────────────────────────────────
+  var trazContainer = document.getElementById('trazabilidad-container');
+  if(trazContainer){
+    var blocks = trazContainer.querySelectorAll('[id^="kpi-block-"]');
+    Array.prototype.forEach.call(blocks,function(block){
+      var blockKid = block.id.replace('kpi-block-','');
+
+      // Area filter on block uses data-area attribute (Spanish names in data)
+      var blockArea = block.getAttribute('data-area')||'';
+      if(area){
+        var aMap={'Production':['Production','Producción'],'Services':['Services','Servicios'],'Governance':['Governance','Gobernanza'],'Market':['Market','Mercado'],'Global indicators':['Global indicators','Global']};
+        var aAllowed = aMap[area]||[area];
+        if(aAllowed.indexOf(blockArea)<0){
+          block.style.display='none';
+          block.querySelectorAll('tbody tr').forEach(function(r){r.style.display='';});
+          return;
+        }
+      }
+
+      // Commodity filter: on block AND on rows
+      var blockComms=(block.getAttribute('data-commodity')||'').split(',').map(function(s){return s.trim();});
+      if(comm && blockComms.indexOf(comm)<0){
+        block.style.display='none';
+        block.querySelectorAll('tbody tr').forEach(function(r){r.style.display='';});
+        return;
+      }
+
+      // KPI filter
+      if(kpi && blockKid !== kpi){
+        block.style.display='none';
+        block.querySelectorAll('tbody tr').forEach(function(r){r.style.display='';});
+        return;
+      }
+
+      // Priorization filter
+      if(prior){
+        if(prior==='pri'   && KPI_PRIORIZADOS.indexOf(blockKid)<0)   {block.style.display='none';return;}
+        if(prior==='nopri' && KPI_NO_PRIORIZADOS.indexOf(blockKid)<0){block.style.display='none';return;}
+      }
+
+      // Estado filter (KPI-level)
+      if(estado){
+        var kEs = KPI_ESTADO_MAP[blockKid]||'';
+        if(kEs !== estado){block.style.display='none';return;}
+      }
+
+      // Row-level filters: proyecto + comm on individual rows
+      var rows = Array.prototype.slice.call(block.querySelectorAll('tbody tr'));
+      var anyRowVis = false, filtAv = 0;
+      rows.forEach(function(row){
+        var show=true;
+        if(comm){var rc=(row.getAttribute('data-comm')||'').split(',').map(function(s){return s.trim();});if(rc.indexOf(comm)<0)show=false;}
+        if(proj&&show&&row.getAttribute('data-proyecto')!==proj) show=false;
+        row.style.display=show?'':'none';
+        if(show){
+          anyRowVis=true;
+          var ac=row.querySelectorAll('td')[4];
+          if(ac){var v=parseInt((ac.textContent||'').replace(/[^0-9]/g,''));if(!isNaN(v))filtAv+=v;}
+        }
+      });
+
+      if(!anyRowVis){block.style.display='none';return;}
+      block.style.display='';
+
+      // Update commodity chips
+      Array.prototype.forEach.call(block.querySelectorAll('.comm-chip'),function(ch){
+        ch.style.display=comm?(ch.getAttribute('data-comm')===comm?'':'none'):'';
+      });
+
+      // Recalculate header
+      if(comm||proj){
+        var cd=block.querySelector('.contrib-val');if(cd)cd.textContent=filtAv>0?filtAv.toLocaleString('es-CO'):'—';
+        var mv=block.querySelector('.meta-val');var bd=block.querySelector('.header-badge');
+        if(bd&&mv){
+          var mVal=parseInt((mv.textContent||'').replace(/[^0-9]/g,''));
+          var pF=mVal>0?Math.round((filtAv/mVal)*100):null;
+          var stl='display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:6px;';
+          bd.innerHTML=(pF!==null&&pF>=100)?('<span style="'+stl+'background:#E8F5E9;color:#2E7D32;">&#x1F7E2; Alcanzado</span>'):('<span style="'+stl+'background:#FFF8E1;color:#B45309;">&#x1F7E1; En proceso</span>');
+        }
+      } else {
+        var cd2=block.querySelector('.contrib-val');if(cd2)cd2.textContent=cd2.getAttribute('data-original')||cd2.textContent;
+        var bd2=block.querySelector('.header-badge');if(bd2)bd2.innerHTML=bd2.getAttribute('data-original')||bd2.innerHTML;
+        Array.prototype.forEach.call(block.querySelectorAll('.comm-chip'),function(ch){ch.style.display='';});
+      }
+    });
+
+    // No results for trazabilidad
+    var noTraz=document.getElementById('traz-no-results');
+    if(!noTraz){noTraz=document.createElement('div');noTraz.id='traz-no-results';noTraz.style.cssText='display:none;padding:40px;text-align:center;color:#aaa;font-size:13px;font-style:italic;';noTraz.textContent='No existen resultados para los filtros seleccionados.';trazContainer.appendChild(noTraz);}
+    var anyTraz=Array.prototype.some.call(trazContainer.querySelectorAll('[id^="kpi-block-"]'),function(b){return b.style.display!=='none';});
+    noTraz.style.display=anyTraz?'none':'block';
+  }
+
+
+  // ── PORTAFOLIO: project cards ──────────────────────────────────────────────
+  var portContainer = document.getElementById('project-cards-container');
+  if(portContainer){
+    Array.prototype.forEach.call(portContainer.querySelectorAll('.project-card'),function(card){
+      var show=true;
+      // Commodity: check card's commodity pills
+      if(comm){
+        var pills=Array.prototype.slice.call(card.querySelectorAll('.commodity-pill'));
+        var hasComm=pills.some(function(p){return p.textContent.trim()===comm;});
+        if(!hasComm) show=false;
+      }
+      // Proyecto: match by project name in card
+      if(proj && show){
+        var nameEl=card.querySelector('.project-name');
+        var cardProj=nameEl?nameEl.textContent.trim():'';
+        // Map proj IDs to display names
+        var projNames={'CARGILL':'CARGILL','PURATOS':'PURATOS / PRoSPO','BASF':'BASF – COCLI','NISCOPS':'NI-SCOPS','P2P':'P2P (Palma & Café)','CLIMATE':'Climate Heroes / Dream Fund','UKPACT':'UK PACT'};
+        if(cardProj !== (projNames[proj]||proj)) show=false;
+      }
+      card.style.display=show?'':'none';
+    });
+  }
+}
+
+function resetFilters(){
+  G_FILTERS={area:'',comm:'',proj:'',estado:'',prior:'',kpi:''};
+  ['f-area','f-commodity','f-proyecto','f-estado','f-prior','f-kpi'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  applyFilters();
+}
+
+// Legacy compatibility
+function filterResumen(){ applyFilters(); }
+function resetResumenFilters(){ resetFilters(); }
+
+var PAGE_TITLES={resumen:'Resumen Ejecutivo',trazabilidad:'Trazabilidad de KPIs',portafolio:'Estado de Proyectos'};
+function showPage(pageId){
+  Array.prototype.forEach.call(document.querySelectorAll('.page'),function(p){p.classList.remove('active');});
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-item'),function(n){n.classList.remove('active');});
+  var page=document.getElementById('page-'+pageId);if(page)page.classList.add('active');
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-item'),function(n){if(n.getAttribute('onclick')&&n.getAttribute('onclick').indexOf("'"+pageId+"'")>=0)n.classList.add('active');});
+  document.getElementById('page-title').textContent=PAGE_TITLES[pageId]||pageId;
+  // Filterbar always visible on all 4 main pages
+  var fb=document.getElementById('filterbar');
+  if(fb) fb.style.display='flex';
+  // Re-apply filters when switching pages so state persists
+  applyFilters();
+}
+
+// RESUMEN EJECUTIVO FILTERS
+var RE_ACTIVOS = ['REC42','REC54','REC57','REC58','REC59','REC60','REC61','S1.1','S1.2','S1.3','S1.4','S1.5','S2.1','S6.3'];
+var RE_SIN_META = ['REC36','REC55','S6.1','S6.2','S6.4','S6.5'];
+
+function filterResumen(){
+  var tipo = document.getElementById('re-tipo').value;
+  var kpi  = document.getElementById('re-kpi').value;
+  var wrap = document.getElementById('exec-table-wrap');
+  if(!wrap) return;
+
+  var table = wrap.querySelector('.exec-table');
+  if(!table) return;
+
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+  var anyVisible = false;
+
+  rows.forEach(function(row){
+    if(row.classList.contains('area-header')) return; // handle separately
+
+    // Get KPI ID from the td-kpi-id span
+    var idSpan = row.querySelector('.td-kpi-id');
+    var rowKpi = idSpan ? idSpan.textContent.trim() : '';
+
+    if(!rowKpi){
+      // area-header row — show/hide based on whether any sibling rows are visible
+      return;
+    }
+
+    var show = true;
+
+    // Tipo filter
+    if(tipo === 'activos'){
+      if(RE_ACTIVOS.indexOf(rowKpi) < 0) show = false;
+    } else if(tipo === 'sin_meta'){
+      if(RE_SIN_META.indexOf(rowKpi) < 0) show = false;
+    }
+
+    // KPI filter
+    if(kpi && rowKpi !== kpi) show = false;
+
+    row.style.display = show ? '' : 'none';
+    if(show) anyVisible = true;
+  });
+
+  // Show/hide area-header rows based on whether they have visible data rows after them
+  var areaHeaders = Array.prototype.slice.call(table.querySelectorAll('tr.area-header'));
+  areaHeaders.forEach(function(header){
+    var hasVisible = false;
+    var next = header.nextElementSibling;
+    while(next && !next.classList.contains('area-header')){
+      var idSpan = next.querySelector('.td-kpi-id');
+      if(idSpan && next.style.display !== 'none') hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    header.style.display = hasVisible ? '' : 'none';
+  });
+
+  // No results message
+  var noMsg = document.getElementById('re-no-results');
+  if(!noMsg){
+    noMsg = document.createElement('div');
+    noMsg.id = 're-no-results';
+    noMsg.style.cssText = 'display:none;padding:32px;text-align:center;color:#aaa;font-size:13px;font-style:italic;';
+    noMsg.textContent = 'No hay KPIs para los filtros seleccionados.';
+    wrap.appendChild(noMsg);
+  }
+  noMsg.style.display = anyVisible ? 'none' : 'block';
+  if(table) table.style.display = anyVisible ? '' : 'none';
+}
+
+function resetResumenFilters(){
+  var t = document.getElementById('re-tipo');
+  var k = document.getElementById('re-kpi');
+  if(t) t.value = '';
+  if(k) k.value = '';
+  filterResumen();
+}
+
+
+// ══════════════════════════════════════════════
+// EXPORT FUNCTIONS
+// ══════════════════════════════════════════════
+function getPageName(){
+  var titles={resumen:'Resumen_Ejecutivo',trazabilidad:'Trazabilidad_KPI',portafolio:'Estado_de_Proyectos'};
+  var active=document.querySelector('.page.active');
+  if(!active) return 'Dashboard';
+  var id=active.id.replace('page-','');
+  return titles[id]||id;
+}
+
+function showMsg(msg){
+  var el=document.getElementById('export-msg');
+  if(el){el.textContent=msg;el.style.display='block';}
+}
+function hideMsg(){
+  var el=document.getElementById('export-msg');
+  if(el){el.style.display='none';el.textContent='';}
+}
+
+function exportPDF(){
+  var pageName=getPageName();
+  var fileName='MASP_IV_Colombia_'+pageName+'_Jun2026.pdf';
+  showMsg('Generando PDF…');
+  var btn1=document.getElementById('btn-pdf');
+  var btn2=document.getElementById('btn-excel');
+  if(btn1)btn1.disabled=true;
+  if(btn2)btn2.disabled=true;
+
+  var target=document.querySelector('.page.active');
+  if(!target){hideMsg();return;}
+
+  // Determine orientation based on page
+  var pageId=target.id.replace('page-','');
+  var isLandscape=(pageId==='trazabilidad');
+
+  setTimeout(function(){
+    // Capture full scrollable content, not just viewport
+    var captureOpts={
+      scale:1.8,
+      useCORS:true,
+      backgroundColor:'#F7F7F4',
+      logging:false,
+      width:target.scrollWidth,
+      height:target.scrollHeight,
+      windowWidth:target.scrollWidth,
+      scrollX:0,
+      scrollY:0
+    };
+
+    html2canvas(target,captureOpts).then(function(canvas){
+      var jsPDF=window.jspdf.jsPDF;
+      var imgW=canvas.width/captureOpts.scale;
+      var imgH=canvas.height/captureOpts.scale;
+
+      // PDF page size: A4 landscape or portrait
+      // A4: 297 x 210 mm (landscape) or 210 x 297 mm (portrait)
+      var margin=8; // mm
+      var pdfW=isLandscape?297:210;
+      var pdfH=isLandscape?210:297;
+      var printW=pdfW-(margin*2);
+
+      // Scale image to fit page width
+      var scale=printW/imgW;
+      var scaledImgH=imgH*scale;
+      var pageContentH=pdfH-(margin*2);
+
+      var pdf=new jsPDF({
+        orientation:isLandscape?'landscape':'portrait',
+        unit:'mm',
+        format:'a4'
+      });
+
+      var totalPages=Math.ceil(scaledImgH/pageContentH);
+      var pageNum=0;
+
+      // Slice canvas into page-height segments
+      while(pageNum<totalPages){
+        if(pageNum>0) pdf.addPage();
+
+        // Source Y position in original canvas pixels
+        var srcY=Math.round((pageNum*pageContentH/scale)*captureOpts.scale);
+        var srcH=Math.round((pageContentH/scale)*captureOpts.scale);
+        if(srcY+srcH>canvas.height) srcH=canvas.height-srcY;
+
+        // Create a slice canvas
+        var sliceCanvas=document.createElement('canvas');
+        sliceCanvas.width=canvas.width;
+        sliceCanvas.height=srcH;
+        var sliceCtx=sliceCanvas.getContext('2d');
+        sliceCtx.drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
+
+        var sliceData=sliceCanvas.toDataURL('image/png');
+        var sliceDisplayH=(srcH/captureOpts.scale)*scale;
+
+        pdf.addImage(sliceData,'PNG',margin,margin,printW,sliceDisplayH);
+        pageNum++;
+      }
+
+      pdf.save(fileName);
+      showMsg('Exportación completada.');
+      setTimeout(hideMsg,2500);
+      if(btn1)btn1.disabled=false;
+      if(btn2)btn2.disabled=false;
+    }).catch(function(e){
+      console.error('PDF error:',e);
+      showMsg('Error al generar PDF.');
+      setTimeout(hideMsg,2500);
+      if(btn1)btn1.disabled=false;
+      if(btn2)btn2.disabled=false;
+    });
+  },150);
+}
+
+function exportExcel(){
+  var pageName=getPageName();
+  var fileName='MASP_IV_Colombia_'+pageName+'_Jun2026.xlsx';
+  showMsg('Generando Excel…');
+  var btn1=document.getElementById('btn-pdf');
+  var btn2=document.getElementById('btn-excel');
+  if(btn1)btn1.disabled=true;
+  if(btn2)btn2.disabled=true;
+
+  setTimeout(function(){
+    var dataRows=[];
+    var active=document.querySelector('.page.active');
+    var pageId=active?active.id.replace('page-',''):'';
+
+    if(pageId==='resumen'){
+      var tbl=document.querySelector('.exec-table');
+      if(tbl){
+        Array.prototype.forEach.call(tbl.querySelectorAll('tr'),function(row){
+          if(row.style.display==='none') return;
+          var cells=[];
+          Array.prototype.forEach.call(row.querySelectorAll('th,td'),function(cell){
+            cells.push(cell.textContent.trim().replace(/\s+/g,' '));
+          });
+          if(cells.some(function(x){return x.trim();})) dataRows.push(cells);
+        });
+      }
+
+    } else if(pageId==='trazabilidad'){
+      dataRows.push(['KPI ID','KPI Nombre','Area','Area Estrategica','Proyecto','Indicador','Frecuencia','Meta 2026','Avance reportado','% Meta 2026','Estado','Fecha']);
+      var trazContainer=document.getElementById('trazabilidad-container');
+      if(trazContainer){
+        var blocks=trazContainer.querySelectorAll('[id^="kpi-block-"]');
+        Array.prototype.forEach.call(blocks,function(block){
+          if(block.style.display==='none') return;
+          var kpiId=block.id.replace('kpi-block-','');
+          var kpiHeader=block.querySelector('.trace-header-title');
+          var kpiName=kpiHeader?kpiHeader.textContent.trim():'';
+          var areaSub=block.querySelector('.trace-header > div > div');
+          var areaText=areaSub?areaSub.textContent.trim():'';
+          var areaParts=areaText.split('·').map(function(s){return s.trim();});
+          var area=areaParts[0]||'';
+          var areaEst=areaParts[1]||'';
+          var tbRows=block.querySelectorAll('tbody tr');
+          Array.prototype.forEach.call(tbRows,function(row){
+            if(row.style.display==='none') return;
+            var tds=row.querySelectorAll('td');
+            if(tds.length<8) return;
+            dataRows.push([
+              kpiId, kpiName, area, areaEst,
+              tds[0]?tds[0].textContent.trim():'',
+              tds[1]?tds[1].textContent.trim():'',
+              tds[2]?tds[2].textContent.trim():'',
+              tds[3]?tds[3].textContent.trim():'',
+              tds[4]?tds[4].textContent.trim():'',
+              tds[5]?tds[5].textContent.trim():'',
+              tds[6]?tds[6].textContent.trim():'',
+              tds[7]?tds[7].textContent.trim():''
+            ]);
+          });
+        });
+      }
+
+    } else if(pageId==='portafolio'){
+      dataRows.push(['Proyecto','Frecuencia','Commodities','Ultimo Reporte','Indicadores','Estados']);
+      var portContainer=document.getElementById('project-cards-container');
+      if(portContainer){
+        var cards=portContainer.querySelectorAll('.project-card');
+        Array.prototype.forEach.call(cards,function(card){
+          if(card.style.display==='none') return;
+          var name=card.querySelector('.project-name');
+          var freq=card.querySelector('.project-freq');
+          var pills=card.querySelectorAll('.commodity-pill');
+          var comms=Array.prototype.map.call(pills,function(p){return p.textContent.trim();}).join(', ');
+          var statRows=card.querySelectorAll('.project-stat-row');
+          var lastDate='',indicadores='';
+          Array.prototype.forEach.call(statRows,function(r){
+            var lbl=r.querySelector('span');
+            var val=r.querySelector('strong');
+            if(!lbl||!val) return;
+            var lblTxt=lbl.textContent.toLowerCase();
+            if(lblTxt.indexOf('ltimo')>=0||lblTxt.indexOf('reporte')>=0) lastDate=val.textContent.trim();
+            if(lblTxt.indexOf('indicadores')>=0) indicadores=val.textContent.trim();
+          });
+          var statPillsEl=card.querySelector('.stat-pills');
+          var badges=statPillsEl?statPillsEl.textContent.trim().replace(/\s+/g,' '):'';
+          dataRows.push([
+            name?name.textContent.trim():'',
+            freq?freq.textContent.trim():'',
+            comms, lastDate, indicadores, badges
+          ]);
+        });
+      }
+    }
+
+    var now=new Date();
+    var pad=function(n){return String(n).padStart(2,'0');};
+    var dateStr=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+    var getVal=function(id){var el=document.getElementById(id);return el&&el.value?el.value:'Todos';};
+    var metaRows=[
+      ['Campo','Valor'],
+      ['Dashboard','MASP IV Colombia - Executive Monitoring Dashboard'],
+      ['Version','v2.0'],
+      ['Pagina exportada', pageName.replace(/_/g,' ')],
+      ['Corte de informacion','Junio 2026'],
+      ['Fecha de generacion', dateStr],
+      ['',''],
+      ['FILTROS APLICADOS',''],
+      ['Area', getVal('f-area')],
+      ['Commodity', getVal('f-commodity')],
+      ['Proyecto', getVal('f-proyecto')],
+      ['Estado', getVal('f-estado')],
+      ['Priorizacion 2026', getVal('f-prior')],
+      ['KPI MASP IV', getVal('f-kpi')],
+    ];
+
+    var wb=XLSX.utils.book_new();
+    var wsData=XLSX.utils.aoa_to_sheet(dataRows);
+    var wsMeta=XLSX.utils.aoa_to_sheet(metaRows);
+    if(dataRows.length>0&&dataRows[0]){
+      var colW=dataRows[0].map(function(h,i){
+        var mx=String(h||'').length;
+        dataRows.forEach(function(r){if(r[i])mx=Math.max(mx,String(r[i]).length);});
+        return {wch:Math.min(mx+2,55)};
+      });
+      wsData['!cols']=colW;
+    }
+    wsMeta['!cols']=[{wch:30},{wch:65}];
+    XLSX.utils.book_append_sheet(wb,wsData,'Datos');
+    XLSX.utils.book_append_sheet(wb,wsMeta,'Metadatos');
+    XLSX.writeFile(wb,fileName);
+    showMsg('Exportación completada.');
+    setTimeout(hideMsg,2500);
+    if(btn1)btn1.disabled=false;
+    if(btn2)btn2.disabled=false;
+  },100);
+}
+
+// INIT
+document.addEventListener('DOMContentLoaded',function(){
+  renderResumen();
+  renderTrazabilidad();
+  renderPortafolio();
+  showPage('resumen');
+});
+</script>
+</body>
+</html>
